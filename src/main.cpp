@@ -11,6 +11,7 @@
 #include "DHTesp.h"
 #include "ota.h"
 #include <ezTime.h>
+#include <RunningMedian.h>
 //#include "FS.h" 
 //#include <SPIFFS.h>
 
@@ -33,8 +34,8 @@
 
 bool ledStatus = true;
 
-bool publishTemperature = false;
-bool publishHumidity    = false;
+bool publishTemperature = true;
+bool publishHumidity    = true;
 bool publishRssi        = false;
 
 
@@ -49,6 +50,9 @@ const unsigned long dhtReadInterval = 5000;
 const double        dhtToleranceTemp = 0.2; 
 const double        dhtToleranceHum  = 0.5; 
 const double        rssiTolerance    = 10; 
+
+RunningMedian temperatureSamples = RunningMedian(5);
+RunningMedian humiditySamples    = RunningMedian(5);
 
 
 MQTTClient MQTTclient;
@@ -290,8 +294,9 @@ void loop()
 {
 //  static unsigned long    startMillis = millis();
   static unsigned long    nextDhtRead = 0;
-  static TempAndHumidity  oldValues;
-  static uint8_t          oldRssi;
+  static float     oldTemperature;
+  static float     oldHumidity;
+  static uint8_t   oldRssi;
   enum  publishedTopics  { ptDht, ptRssi, ptSignOfLife, ptPublishCount};
   static unsigned long    nextPublish[ptPublishCount] = {0,0,0,};
 
@@ -309,6 +314,21 @@ void loop()
     connect(true);
   }
 
+  if (millis() >= nextDhtRead)
+  {
+    if (dht.getStatus() == 0)
+    {
+      TempAndHumidity v = dht.getTempAndHumidity();
+      nextDhtRead       = millis() + dhtReadInterval;
+      temperatureSamples.add(v.temperature);
+      humiditySamples.   add(v.humidity);
+    }
+    else
+    {
+      Serial.println("DHT error status: " + String(dht.getStatusString()));
+    }
+  }
+
   if (MQTTclient.connected()) 
   {
     MQTTclient.loop();
@@ -317,32 +337,22 @@ void loop()
 
     if (publishTemperature || publishHumidity)
     {
-      if  (millis() >= nextPublish[ptDht]
-        && millis() >= nextDhtRead) 
+      if  (millis() >= nextPublish[ptDht]) 
       {
-
-        if (dht.getStatus() == 0) 
+        float newTemperature = temperatureSamples.getMedian();
+        if (publishTemperature && abs(newTemperature - oldTemperature) > dhtToleranceTemp)
         {
-          TempAndHumidity newValues = dht.getTempAndHumidity();
-          nextDhtRead       = millis() + dhtReadInterval;
-
-          if (publishTemperature && abs(newValues.temperature-  oldValues.temperature) > dhtToleranceTemp)
-          {
-            publishDouble("temperature", newValues.temperature, "C");
-            nextPublish[ptDht] = millis() + minimumPublishInterval;
-            oldValues.temperature = newValues.temperature;
-          }
-
-          if (publishHumidity && abs(newValues.humidity - oldValues.humidity)>dhtToleranceHum)
-          {
-            publishDouble("humidity", newValues.humidity, "RH%");
-            nextPublish[ptDht] = millis() + minimumPublishInterval;
-            oldValues.humidity = newValues.humidity;
-          }
+          publishDouble("temperature", newTemperature, "C");
+          nextPublish[ptDht] = millis() + minimumPublishInterval;
+          oldTemperature = newTemperature;
         }
-        else
+
+        float newHumidity = humiditySamples.getMedian();
+        if (publishHumidity && abs(newHumidity - oldHumidity)>dhtToleranceHum)
         {
-          Serial.println("DHT error status: " + String(dht.getStatusString()));
+          publishDouble("humidity", newHumidity, "RH%");
+          nextPublish[ptDht] = millis() + minimumPublishInterval;
+          oldHumidity = newHumidity;
         }
       }
     }

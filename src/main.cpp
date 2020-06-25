@@ -15,6 +15,15 @@
 //#include "FS.h" 
 //#include <SPIFFS.h>
 
+
+//remove for regular ESP32 development boards
+// #define ESP32DRIVERBOARD
+
+// remove if Black white RED display
+//#define BWR_DISPLAY
+
+#include "epaper.h"
+
 #define MQTT_SERVER "192.168.178.55"
 #define MQTT_USER   ""
 #define MQTT_PW     ""
@@ -57,8 +66,8 @@ RunningMedian humiditySamples    = RunningMedian(5);
 
 MQTTClient MQTTclient;
 
-const char* subscribedTopics [] = { "signOfLife",  "command/config" };
-enum enumSubscribedTopics         { stSignOfLife,  stConfig,         stLast };
+const char* subscribedTopics [] = { "signOfLife",  "command/config", "display/text", "display/json" };
+enum enumSubscribedTopics         { stSignOfLife,  stConfig,         stDisplayText,  stDisplayJson, stLast };
 
 const char PROGMEM configFileName[]  = "/config.json";
 
@@ -208,7 +217,49 @@ void messageReceived(String &topic, String &payload)
     Serial.print(publishTemperature);
     Serial.print(publishHumidity);
     Serial.println(publishRssi);
-  
+   
+  }
+  else if (removePrefix(topic) == subscribedTopics[stSignOfLife])
+  {
+    Serial.println("** SignOfLife: " + topic + " - >" + payload + "<");
+    //showText(font18, payload.c_str());
+  }
+  else if (removePrefix(topic) == subscribedTopics[stDisplayText])
+  {
+    Serial.println("** Display Text: " + topic + " - >" + payload + "<");
+    showText(font18, payload.c_str());
+  }
+  else if (removePrefix(topic) == subscribedTopics[stDisplayJson])
+  {
+    Serial.println("** Display Json: " + topic + " - >" + payload + "<");
+    DynamicJsonDocument doc(512);
+    deserializeJson(doc, payload);
+    JsonObject obj = doc.as<JsonObject>();
+    String text = obj["text"];
+    int    size = obj["size"];
+    
+    const GFXfont* f;
+    switch (size)
+    {
+      case 9:
+        f = font9;
+        break;
+      case 12:
+        f = font12;
+        break;
+      case 18:
+        f = font18;
+        break;
+      case 24:
+        f = font24;
+        break;
+
+      default:
+        f = font9;
+        break;
+    };
+
+    showText(f, text.c_str());
   }
   else
   {
@@ -257,6 +308,8 @@ void syncTime()
 	Serial.println("UTC: " + UTC.dateTime());
 }
 
+
+
 void setup() 
 {
   Serial.begin(115200);
@@ -286,6 +339,14 @@ void setup()
 
   Serial.print("Setting up OTA...: ");
   setupOTA("TemplateSketch");
+
+  display.init(115200); // enable diagnostic output on Serial
+#if defined ESP32DRIVERBOARD
+  SPI.end(); 
+  SPI.begin(13, 12, 14, 15);
+  //SPI.begin(PIN_CLK,PIN_MISO,PIN_MOSI, PIN_SS);
+#endif
+
   
   Serial.println("\n**** Setup() complete. ****\n");
 }
@@ -298,7 +359,7 @@ void loop()
   static float     oldHumidity;
   static uint8_t   oldRssi;
   enum  publishedTopics  { ptDht, ptRssi, ptSignOfLife, ptPublishCount};
-  static unsigned long    nextPublish[ptPublishCount] = {0,0,0,};
+  static unsigned long    nextPublish[ptPublishCount] = {0,0,0};
 
   static unsigned long nextTimeSync = timeSyncInterval;
   

@@ -61,17 +61,23 @@
 
 //SPIClass displaySPI;  
 
-extern GxEPD_Class display;
+class ePaper
+{
+  public:
+    ePaper();
 
-void showText( const GFXfont* f,
-              #if defined(HAS_RED_COLOR)
-                bool red,
-              #endif
-              const char* text);
+    GxIO_Class io;
+    GxEPD_Class display;
 
-//void showFont(const char name[], const GFXfont* f);
-//void showFontCallback();
-//void drawCornerTest();
-//void showBitmapExample();
+    void showText( const GFXfont* f,
+                  #if defined(HAS_RED_COLOR)
+                    bool red,
+                  #endif
+                  const char* text);
 
-#endif
+    void showFont(const char name[], const GFXfont* f);
+    //void showFontCallback();
+    //void drawCornerTest();
+    //void showBitmapExample();
+};
+#endif 

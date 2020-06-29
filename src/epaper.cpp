@@ -2,11 +2,16 @@
 
 #include GxEPD_BitmapExamples
 
-GxIO_Class io(SPI, /*CS=5*/ PIN_CS, /*DC=*/ PIN_DC, /*RST=*/ PIN_RST); // arbitrary selection of 17, 16
-GxEPD_Class display(io, /*RST=*/ PIN_RST, /*BUSY=*/ PIN_BUSY); // arbitrary selection of (16), 4
+ePaper::ePaper() :
+  io(SPI, /*CS=5*/ PIN_CS, /*DC=*/ PIN_DC, /*RST=*/ PIN_RST),
+  display(io, /*RST=*/ PIN_RST, /*BUSY=*/ PIN_BUSY)
+{
+  Serial.println(display.bm_default);
+  Serial.println(io.name);
+}
 
 
-void showFont(const char name[], const GFXfont* f)
+void ePaper::showFont(const char name[], const GFXfont* f)
 {
   display.fillScreen(GxEPD_WHITE);
   display.setTextColor(GxEPD_BLACK);
@@ -28,7 +33,7 @@ void showFont(const char name[], const GFXfont* f)
 }
 
 /*
-void showFontCallback()
+void ePaper::showFontCallback()
 {
   const char* name = "FreeMonoBold9pt7b";
   const GFXfont* f = &FreeMonoBold9pt7b;
@@ -51,7 +56,7 @@ void showFontCallback()
 
 */
 
-void showText( const GFXfont* f,
+void ePaper::showText( const GFXfont* f,
               #if defined(HAS_RED_COLOR)
                 bool red,
               #endif
@@ -66,8 +71,8 @@ void showText( const GFXfont* f,
   display.update(); 
 }
 
-
-void drawCornerTest()
+/*
+void ePaper::drawCornerTest()
 {
   display.drawCornerTest();
   delay(5000);
@@ -85,11 +90,11 @@ void drawCornerTest()
   }
   display.setRotation(rotation); // restore
 }
+*/
 
-
-
+/*
 #if defined(_GxGDEW042T2_H_)
-void showBitmapExample()
+void ePaper::showBitmapExample()
 {
 #if defined(__AVR)
   display.drawBitmap(BitmapExample1, sizeof(BitmapExample1));
@@ -217,5 +222,8 @@ void showBitmapExample()
   //display.drawExampleBitmap(BitmapExample1, 0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, GxEPD_BLACK);
   //display.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
 #endif
+
 }
+
 #endif
+*/

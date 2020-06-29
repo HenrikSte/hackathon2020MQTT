@@ -16,17 +16,20 @@
 //#include <SPIFFS.h>
 
 
-//remove for regular ESP32 development boards
-// #define ESP32DRIVERBOARD
-
-// remove if Black white RED display
-//#define BWR_DISPLAY
-
 #include "epaper.h"
 
-#define MQTT_SERVER "192.168.178.55"
-#define MQTT_USER   ""
-#define MQTT_PW     ""
+ePaper e;
+
+#if defined henrik_at_home
+  #define MQTT_SERVER "192.168.178.55"
+  #define MQTT_USER   ""
+  #define MQTT_PW     ""
+#else
+  #define MQTT_SERVER "pasx-team-erp.werum.net"
+  #define MQTT_USER   "pasx"
+  #define MQTT_PW     "pasx"
+#endif
+
 #define topicPrefix WiFi.macAddress() + "/"
 #define minimumPublishInterval 5000
 #define signOfLiveInterval  60000
@@ -203,6 +206,7 @@ void messageReceived(String &topic, String &payload)
   if (removePrefix(topic) == subscribedTopics[stConfig])
   {
     Serial.println("** config: " + topic + " - >" + payload + "<");
+    
     DynamicJsonDocument doc(512);
     deserializeJson(doc, payload);
     JsonObject obj = doc.as<JsonObject>();
@@ -227,7 +231,7 @@ void messageReceived(String &topic, String &payload)
   else if (removePrefix(topic) == subscribedTopics[stDisplayText])
   {
     Serial.println("** Display Text: " + topic + " - >" + payload + "<");
-    showText(font18, payload.c_str());
+    e.showText(font18, payload.c_str());
   }
   else if (removePrefix(topic) == subscribedTopics[stDisplayJson])
   {
@@ -259,7 +263,7 @@ void messageReceived(String &topic, String &payload)
         break;
     };
 
-    showText(f, text.c_str());
+    e.showText(f, text.c_str());
   }
   else
   {
@@ -317,6 +321,20 @@ void setup()
   
   delay(500);
   Serial.println();
+  #ifdef ESP32DRIVERBOARD
+    Serial.print("Compiled for driverboard");
+  #else
+    Serial.print("Compiled for regular ESP32");
+  #endif
+
+  #if defined BWR_DISPLAY
+    Serial.println(" with BWR display");
+  #else
+    Serial.println(" with BW display");
+  #endif
+
+
+
 
   Serial.println("Starting dht...");
 	dht.setup(DHT_PIN, DHTesp::DHT22);
@@ -328,6 +346,7 @@ void setup()
   Serial.print("My IP: "); 
   Serial.println(WiFi.localIP());
   
+  ezt::setServer("172.20.200.22");
   syncTime();
 
   Serial.print("Connecting MQTT to ");
@@ -340,12 +359,13 @@ void setup()
   Serial.print("Setting up OTA...: ");
   setupOTA("TemplateSketch");
 
-  display.init(115200); // enable diagnostic output on Serial
-#if defined ESP32DRIVERBOARD
+  Serial.println("Init Display: ");
+  e.display.init(); // enable diagnostic output on Serial
+//#if defined ESP32DRIVERBOARD
   SPI.end(); 
   SPI.begin(13, 12, 14, 15);
   //SPI.begin(PIN_CLK,PIN_MISO,PIN_MOSI, PIN_SS);
-#endif
+//#endif
 
   
   Serial.println("\n**** Setup() complete. ****\n");
@@ -387,6 +407,7 @@ void loop()
     else
     {
       Serial.println("DHT error status: " + String(dht.getStatusString()));
+      nextDhtRead       = millis() + dhtReadInterval;
     }
   }
 

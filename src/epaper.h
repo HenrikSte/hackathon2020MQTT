@@ -4,10 +4,11 @@
 #include <Wire.h>
 #include <SPI.h>
 #include <GxEPD.h>
-
+//#define HAS_RED_COLOR
 
 #if !defined ESP32DRIVERBOARD
   #if defined BWR_DISPLAY
+    #define HAS_RED_COLOR
     #include <GxGDEW042Z15/GxGDEW042Z15.h>    // 4.2" b/w/r
   #else
     #include <GxGDEW042T2/GxGDEW042T2.h>      // 4.2" b/w
@@ -74,6 +75,10 @@ class ePaper
 
 
     void showFont(const char name[], const GFXfont* f);
+    void printHLine(uint16_t y, uint16_t width, uint16_t color);
+    uint16_t printCenteredText(uint16_t y, const GFXfont* f, uint16_t color, const char* text);
+    uint16_t printLeftAlignedText(uint16_t y, const GFXfont* f, uint16_t color, const char* text);
+    void printLabel();
     //void showFontCallback();
     //void drawCornerTest();
     //void showBitmapExample();

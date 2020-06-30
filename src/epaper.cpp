@@ -67,11 +67,78 @@ void ePaper::showText( const GFXfont* f,
     display.setTextColor(GxEPD_BLACK);
   #endif
   display.setFont(f);
-  display.setCursor(5, 5);
+  display.setCursor(0, 0);
   display.println();
   display.println(text);
   display.update(); 
 }
+
+void ePaper::printHLine(uint16_t y, uint16_t width, uint16_t color) {
+  display.fillRect(0,y,GxEPD_WIDTH,width,color);
+}
+
+uint16_t ePaper::printCenteredText(uint16_t y, const GFXfont* f, uint16_t color, const char* text) {
+  display.setFont(f);
+  int16_t x1,y1;
+  uint16_t width,height;
+  display.getTextBounds(text,0,y,&x1,&y1,&width,&height);
+  //display.fillRect(x1,y1+height,width,height,GxEPD_BLACK);
+  //color=GxEPD_WHITE;
+
+  uint16_t offset = (400-width)/2;
+
+  display.setCursor(offset,y+height);
+  display.setTextColor(color);
+  display.println(text);
+  
+  //return hight of line
+  return height;
+}
+
+uint16_t ePaper::printLeftAlignedText(uint16_t y, const GFXfont* f, uint16_t color, const char* text) {
+  display.setFont(f);
+  int16_t x1,y1;
+  uint16_t width,height;
+  display.getTextBounds(text,0,y,&x1,&y1,&width,&height);
+  //display.fillRect(x1,y1+height,width,height,GxEPD_BLACK);
+  //color=GxEPD_WHITE;
+
+  display.setCursor(0,y+height);
+  display.setTextColor(color);
+  display.println(text);
+
+  //return hight of line
+  return height;
+}
+
+
+void ePaper::printLabel()
+{
+  display.fillScreen(GxEPD_WHITE);
+  // id
+  printCenteredText(5,font18,GxEPD_BLACK,"BC200N01");
+
+  //  top hline
+  printHLine(40,4, GxEPD_BLACK);
+
+  // details
+  printLeftAlignedText(48,font9,GxEPD_BLACK,"Prod: HBP36748");
+  printLeftAlignedText(66,font9,GxEPD_BLACK,"MO:   123467889999765");
+
+  // statusbar
+  printHLine(115,70, GxEPD_BLACK);
+  printCenteredText(133,font24,GxEPD_RED,"NOT CLEAN");// TODO why is white is used instead of red
+
+  // bottom hline
+  printHLine(GxEPD_HEIGHT-40,4, GxEPD_BLACK);
+
+  // batch
+  printCenteredText(GxEPD_HEIGHT-30,font18,GxEPD_BLACK,"BTPRD0001");
+
+  //update
+  display.update();
+}
+
 
 /*
 void ePaper::drawCornerTest()

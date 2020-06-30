@@ -306,10 +306,18 @@ void publishDouble(const char* topic, double value, const char* UOM, bool withPr
 void syncTime()
 {
   Serial.print("Connecting NTP server... ");
-  Serial.println(NTP_SERVER);
-	waitForSync();
-	Serial.println("UTC: " + UTC.dateTime());
+#ifdef MY_NTP_SERVER
+  Serial.print(MY_NTP_SERVER);
+  ezt::setServer(MY_NTP_SERVER);
+#else
+  Serial.print(NTP_SERVER);
+#endif
+ 
+waitForSync();
+Serial.println("UTC: " + UTC.dateTime());
 }
+
+
 
 
 

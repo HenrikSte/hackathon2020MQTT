@@ -14,6 +14,7 @@
   #endif
 #else
   #if defined BWR_DISPLAY
+    #define HAS_RED_COLOR
     #error BWR in 7.5inch not supported yet
   #else
     #include <GxGDEW075T7/GxGDEW075T7.h>      // 7.5" b/w 800x480
@@ -29,7 +30,6 @@
 
 #include <GxIO/GxIO_SPI/GxIO_SPI.h>
 #include <GxIO/GxIO.h>
-
 
 #if defined(ESP32)
 
@@ -69,11 +69,9 @@ class ePaper
     GxIO_Class io;
     GxEPD_Class display;
 
-    void showText( const GFXfont* f,
-                  #if defined(HAS_RED_COLOR)
-                    bool red,
-                  #endif
-                  const char* text);
+    void showText( const GFXfont* f, const char* text);
+
+
 
     void showFont(const char name[], const GFXfont* f);
     //void showFontCallback();

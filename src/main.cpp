@@ -367,11 +367,11 @@ void setup()
 
   Serial.println("Init Display: ");
   e.display.init(); // enable diagnostic output on Serial
-//#if defined ESP32DRIVERBOARD
+#if defined ESP32DRIVERBOARD
   SPI.end(); 
   SPI.begin(13, 12, 14, 15);
   //SPI.begin(PIN_CLK,PIN_MISO,PIN_MOSI, PIN_SS);
-//#endif
+#endif
 
   
   Serial.println("\n**** Setup() complete. ****\n");

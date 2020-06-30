@@ -13,6 +13,7 @@ ePaper::ePaper() :
 
 void ePaper::showFont(const char name[], const GFXfont* f)
 {
+
   display.fillScreen(GxEPD_WHITE);
   display.setTextColor(GxEPD_BLACK);
   display.setFont(f);
@@ -57,15 +58,16 @@ void ePaper::showFontCallback()
 */
 
 void ePaper::showText( const GFXfont* f,
-              #if defined(HAS_RED_COLOR)
-                bool red,
-              #endif
               const char* text)
 {
   display.fillScreen(GxEPD_WHITE);
-  display.setTextColor(GxEPD_BLACK);
+  #if defined(HAS_RED_COLOR)
+    display.setTextColor(GxEPD_RED);
+  #else
+    display.setTextColor(GxEPD_BLACK);
+  #endif
   display.setFont(f);
-  display.setCursor(0, 0);
+  display.setCursor(5, 5);
   display.println();
   display.println(text);
   display.update(); 

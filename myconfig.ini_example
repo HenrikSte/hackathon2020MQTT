@@ -1,0 +1,3 @@
+;copy this file to myconfig.ini and adjust with your configuration
+[platformio]
+default_envs = epaper42bw

@@ -20,16 +20,6 @@
 
 ePaper e;
 
-#if defined henrik_at_home
-  #define MQTT_SERVER "192.168.178.55"
-  #define MQTT_USER   ""
-  #define MQTT_PW     ""
-#else
-  #define MQTT_SERVER "pasx-team-erp.werum.net"
-  #define MQTT_USER   "pasx"
-  #define MQTT_PW     "pasx"
-#endif
-
 #define topicPrefix WiFi.macAddress() + "/"
 #define minimumPublishInterval 5000
 #define signOfLiveInterval  60000
@@ -43,6 +33,14 @@ ePaper e;
 
 #define LED_BUILTIN_PIN   2
 #define DHT_PIN          21
+
+#ifndef MQTT_PW
+  #define MQTT_PW ""
+#endif
+
+#ifndef MQTT_USER
+  #define MQTT_USER ""
+#endif
 
 bool ledStatus = true;
 
@@ -308,6 +306,7 @@ void publishDouble(const char* topic, double value, const char* UOM, bool withPr
 void syncTime()
 {
   Serial.print("Connecting NTP server... ");
+  Serial.println(NTP_SERVER);
 	waitForSync();
 	Serial.println("UTC: " + UTC.dateTime());
 }
@@ -346,7 +345,6 @@ void setup()
   Serial.print("My IP: "); 
   Serial.println(WiFi.localIP());
   
-  ezt::setServer("172.20.200.22");
   syncTime();
 
   Serial.print("Connecting MQTT to ");

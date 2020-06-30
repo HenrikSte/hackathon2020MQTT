@@ -20,7 +20,7 @@
 
 ePaper e;
 
-#define topicPrefix WiFi.macAddress() + "/"
+#define topicPrefix "pasx/sensordata/" + WiFi.macAddress() + "/"
 #define minimumPublishInterval 5000
 #define signOfLiveInterval  60000
 #define timeSyncInterval 60 * 60 * 1000
@@ -44,10 +44,6 @@ ePaper e;
 
 bool ledStatus = true;
 
-bool publishTemperature = true;
-bool publishHumidity    = true;
-bool publishRssi        = false;
-
 
 WiFiWebServer server;
 WiFiClient    wifiClient;
@@ -65,12 +61,22 @@ RunningMedian temperatureSamples = RunningMedian(5);
 RunningMedian humiditySamples    = RunningMedian(5);
 
 
-MQTTClient MQTTclient;
+MQTTClient MQTTclient(4096);
 
-const char* subscribedTopics [] = { "signOfLife",  "command/config", "display/text", "display/json" };
-enum enumSubscribedTopics         { stSignOfLife,  stConfig,         stDisplayText,  stDisplayJson, stLast };
+bool publishTemperature = true;
+bool publishHumidity    = true;
+bool publishRssi        = false;
 
-const char PROGMEM configFileName[]  = "/config.json";
+const char* prefixPlaceHolder   = "$prefix$";
+const char* subscribedTopics [] = { "$prefix$config", "$prefix$signOfLife"  };
+enum enumSubscribedTopics         {  stConfig,         stSignOfLife,        stLast };
+
+const char* layoutBaseTopic = "$prefix$layouts/";
+String layoutName;   // name (topic = prefix + name) of Layout
+String layout;       // actual layout data as JSON
+
+String dataTopic;    // where to pick up data 
+String dataPayload;  // actual data as json
 
 
 void toggleLed()
@@ -107,50 +113,128 @@ __AC_LINK__
 
 String removePrefix(const String& fullTopic)
 {
-  String topic( fullTopic);
+  String topic = fullTopic;
   topic.replace(topicPrefix,"");
+  topic.replace(prefixPlaceHolder,"");
   return topic;
 }
 
-String addPrefix(const String& topic, bool withPrefix)
+String addPrefix(const String& topic)
 {
   String fullTopic;
-  if (withPrefix)
-  {
-    fullTopic = String(topicPrefix) +  topic;
-  }  
-  else
-  {
-    fullTopic = topic;
-  }
+  fullTopic = String(topic);
+  fullTopic.replace(prefixPlaceHolder, topicPrefix);
   return fullTopic;
 }
 
-void unsubscribe(const String& topic, bool withPrefix)
+bool unsubscribe(const String& topic)
 {
-  String fullTopic = addPrefix(topic, withPrefix);
+  String fullTopic = addPrefix(topic);
   Serial.print("UNSUBscribing ");
   Serial.println(fullTopic);
-  MQTTclient.unsubscribe(fullTopic);
+  bool success = MQTTclient.unsubscribe(fullTopic);
+  if (!success)
+  {
+    Serial.println(" unsub FAILED");
+  }
+  else
+  {
+    Serial.println(" ok");
+  }
+  return success;
 }
 
-void subscribe(const String& topic, bool withPrefix)
+bool subscribe(const String& topic)
 {
-  String fullTopic = addPrefix(topic, withPrefix);
+  String fullTopic = addPrefix(topic);
   Serial.print("Subscribing ");
-  Serial.println(fullTopic);
-  MQTTclient.subscribe(fullTopic);
+  Serial.print(fullTopic);
+
+  bool success = MQTTclient.subscribe(fullTopic);
+  if (!success)
+  {
+    Serial.println(" sub FAILED");
+  }
+  else
+  {
+    int todo; // delay vermutlich unnötig
+    delay(100);
+    Serial.println(" ok");
+  }
+  return success;
 }
 
-void subscribeTopics() 
+bool subscribeDataTopic( const String& newDataTopic)
 {
+  bool success = true;
+
+  if (dataTopic.length())
+  {
+    unsubscribe(dataTopic);
+    dataTopic = "";
+  }
+  
+  if (newDataTopic.length())
+  {
+    if (!subscribe(newDataTopic))
+    {
+      success = false;
+    }
+    else
+    {
+      dataTopic = newDataTopic;
+    }
+  }
+  return success;
+}
+
+
+
+bool subscribeLayoutTopic(const String& newLayoutName)
+{
+  bool success = true;
+
+  String topic;
+  if (layoutName.length())
+  {
+    topic = layoutBaseTopic + layoutName;
+    unsubscribe(topic);
+    layoutName = "";
+  }
+  if (newLayoutName.length())
+  {
+    topic = layoutBaseTopic + newLayoutName;
+    if (!subscribe(topic))
+    {
+      success = false;
+    }
+    else
+    {
+      layoutName = newLayoutName;
+    }
+  }
+  return success;
+}
+
+bool subscribeTopics() 
+{
+  bool success = true;
+  Serial.println("Subscribing topic list:");
   for (int i=0; i<stLast; i++)
   {
-    subscribe(subscribedTopics[i], true);
+    if (!subscribe(subscribedTopics[i]))
+    {
+      success = false;
+    }
   }
+  
+  success = success 
+         && subscribeLayoutTopic(layoutName)  // initially blank!
+         && subscribeDataTopic(dataTopic); 
+
+  return success;
+
 }
-
-
 
 void connect(bool reconnecting=false)
 {
@@ -182,55 +266,86 @@ void connect(bool reconnecting=false)
       if (MQTTclient.connect(WiFi.macAddress().c_str(), MQTT_USER , MQTT_PW))
       {
         Serial.println(" OK");
-        subscribeTopics();
-
+        subscribeTopics(); 
       }
       else
       {
-        Serial.println(" failed");
+        Serial.println(" connect failed");
       }
     }
-   }
+  }
   else
   {
-    Serial.println(" failed");
+    Serial.println("wifi failed");
   }
 
 }
 
+bool checkConnection()
+{
+  if (!MQTTclient.connected())
+  {
+    connect(true);
+  }
+  return MQTTclient.connected();
+}
+
+
+
+
+
+
 void messageReceived(String &topic, String &payload) 
 {
-  if (removePrefix(topic) == subscribedTopics[stConfig])
+  Serial.println("Incoming: " + topic + " - >" + payload + "<");
+
+  if (removePrefix(topic) == removePrefix(subscribedTopics[stConfig]))
   {
-    Serial.println("** config: " + topic + " - >" + payload + "<");
-    
+    Serial.println("** new config! ");
+
+    /*
+    {
+      "publishTemperature":true,
+      "publishHumidity":true,
+      "publishRssi":true,
+      "dataTopic":"pasx/equipment",
+      "layoutName":"standard"
+    }
+    */
+
     DynamicJsonDocument doc(512);
     deserializeJson(doc, payload);
     JsonObject obj = doc.as<JsonObject>();
     publishTemperature = obj["publishTemperature"];
     publishHumidity    = obj["publishHumidity"];
     publishRssi        = obj["publishRssi"];
-   
-    Serial.println("");
-    serializeJson(doc, Serial);
+    String newDataTopic          = obj["dataTopic"];
+    String newLayoutName         = obj["layoutName"];
 
-    Serial.print("thr: ");
-    Serial.print(publishTemperature);
-    Serial.print(publishHumidity);
-    Serial.println(publishRssi);
-   
+    subscribeDataTopic(newDataTopic);     // dynamic subscribes
+    subscribeLayoutTopic(newLayoutName);  //
+    
   }
-  else if (removePrefix(topic) == subscribedTopics[stSignOfLife])
+  else if (topic == dataTopic)
   {
-    Serial.println("** SignOfLife: " + topic + " - >" + payload + "<");
-    //showText(font18, payload.c_str());
+    Serial.println("** new Data! ");
+    // e.showText(font9, payload.c_str());
+    dataPayload = payload;
+    int todo; // send data to elabel;
   }
-  else if (removePrefix(topic) == subscribedTopics[stDisplayText])
+  else if (removePrefix(topic) == removePrefix(layoutBaseTopic + layoutName))
   {
-    Serial.println("** Display Text: " + topic + " - >" + payload + "<");
-    e.showText(font18, payload.c_str());
+    Serial.println("** new Layout! ");
+    // e.showText(font9, payload.c_str());
+    layout = payload;
+    int todo; // send layout to elabel;
   }
-  else if (removePrefix(topic) == subscribedTopics[stDisplayJson])
+  else if (removePrefix(topic) == removePrefix(subscribedTopics[stSignOfLife]))
+  {
+    Serial.println("** SignOfLife: ");
+  }
+/*
+  else if (removePrefix(topic) == removePrefix(subscribedTopics[stDisplayJson]))
   {
     Serial.println("** Display Json: " + topic + " - >" + payload + "<");
     DynamicJsonDocument doc(512);
@@ -262,33 +377,44 @@ void messageReceived(String &topic, String &payload)
 
     e.showText(f, text.c_str());
   }
-  else
-  {
-    Serial.println("incoming: " + topic + " - " + payload);
-    int todo; // do something useful
-  }
+*/
 }
 
-void publishString(const char* topic, const char* s, bool withPrefix=true)
+bool publishString(const char* topic, const char* s)
 {
-  String fullTopic = addPrefix(topic, withPrefix);
+  String fullTopic = addPrefix(topic);
+
   Serial.print("publishing ");
   Serial.print(fullTopic);
   Serial.print(" as ");
-  Serial.println(s);
-  MQTTclient.publish(fullTopic, s, true, 0);
+  Serial.print(s);
+
+  checkConnection(); // vermutlich überflüssig
+
+  bool success = MQTTclient.publish(fullTopic, s, true, 0);
+  if (!success)
+  {
+    Serial.print(" publish FAILED ");
+  }
+  else
+  {
+    Serial.println(" ok");
+  }
+
   toggleLed();
+  return success;
 }
 
-void publishDouble(const char* topic, double value, const char* UOM, bool withPrefix = true)
+bool publishDouble(const char* topic, double value, const char* UOM)
 {
   String s;
+  bool success= false;
 
   StaticJsonDocument<512> doc;
 
   // Set the values in the document
-  doc[topic] = value;
-  doc["UOM"] = UOM;
+  doc["value"] = String(value); // Wunsch von Philipp: Zahlen auch als String
+  doc["uom"] = UOM;
   doc["timestamp"] = UTC.dateTime(myTimeFormat); 
 
   if (serializeJsonPretty(doc,s) ==0)
@@ -297,27 +423,24 @@ void publishDouble(const char* topic, double value, const char* UOM, bool withPr
   }
   else
   {
-    publishString(topic, s.c_str(), withPrefix);
+    success = publishString(topic, s.c_str());
   }
-
+  return success;
 }
 
 void syncTime()
 {
   Serial.print("Connecting NTP server... ");
-#ifdef MY_NTP_SERVER
-  Serial.print(MY_NTP_SERVER);
-  ezt::setServer(MY_NTP_SERVER);
-#else
-  Serial.print(NTP_SERVER);
-#endif
- 
-waitForSync();
-Serial.println("UTC: " + UTC.dateTime());
+  #ifdef MY_NTP_SERVER
+    Serial.print(MY_NTP_SERVER);
+    ezt::setServer(MY_NTP_SERVER);
+  #else
+    Serial.print(NTP_SERVER);
+  #endif
+
+	waitForSync();
+	Serial.println("UTC: " + UTC.dateTime());
 }
-
-
-
 
 
 void setup() 
@@ -374,19 +497,23 @@ void setup()
 
   e.printLabel();
 
+  
   Serial.println("\n**** Setup() complete. ****\n");
 }
+
+
 
 void loop() 
 {
 //  static unsigned long    startMillis = millis();
-  static unsigned long    nextDhtRead = 0;
-  static float     oldTemperature;
-  static float     oldHumidity;
-  static uint8_t   oldRssi;
-  enum  publishedTopics  { ptDht, ptRssi, ptSignOfLife, ptPublishCount};
-  static unsigned long    nextPublish[ptPublishCount] = {0,0,0};
-
+  static unsigned long  nextDhtRead = 0;
+  static float          oldTemperature;
+  static float          oldHumidity;
+  static uint8_t        oldRssi;
+  static const char* publishedTopics [] = { "$prefix$signOfLife", "$prefix$temperature", "$prefix$humidity", "$prefix$rssi"};
+  enum  enumPublishedTopics                { ptSignOfLife,         ptTemperature,         ptHumidity,         ptRssi,                 ptLast};
+  static unsigned long    nextPublish[ptLast] = {0,0,0,0};
+  
   static unsigned long nextTimeSync = timeSyncInterval;
   
   //Web Interface
@@ -395,11 +522,6 @@ void loop()
   // Over the air update
   ArduinoOTA.handle();
  
-  // handle MQTT Client subscriptions
-  if (!MQTTclient.connected()) 
-  {
-    connect(true);
-  }
 
   if (millis() >= nextDhtRead)
   {
@@ -417,29 +539,39 @@ void loop()
     }
   }
 
+
+  // handle MQTT Client subscriptions
+ 
+
   if (MQTTclient.connected()) 
   {
     MQTTclient.loop();
      
     // MQTT Publish
 
-    if (publishTemperature || publishHumidity)
+    if (publishTemperature)
     {
-      if  (millis() >= nextPublish[ptDht]) 
+      if  (millis() >= nextPublish[ptTemperature]) 
       {
         float newTemperature = temperatureSamples.getMedian();
         if (publishTemperature && abs(newTemperature - oldTemperature) > dhtToleranceTemp)
         {
-          publishDouble("temperature", newTemperature, "C");
-          nextPublish[ptDht] = millis() + minimumPublishInterval;
+          publishDouble(publishedTopics[ptTemperature], newTemperature, "C");
+          nextPublish[ptTemperature] = millis() + minimumPublishInterval;
           oldTemperature = newTemperature;
         }
+      }
+    }
 
+    if  (publishHumidity)
+    {
+      if  (millis() >= nextPublish[ptHumidity]) 
+      {
         float newHumidity = humiditySamples.getMedian();
         if (publishHumidity && abs(newHumidity - oldHumidity)>dhtToleranceHum)
         {
-          publishDouble("humidity", newHumidity, "RH%");
-          nextPublish[ptDht] = millis() + minimumPublishInterval;
+          publishDouble(publishedTopics[ptHumidity], newHumidity, "RH%");
+          nextPublish[ptHumidity] = millis() + minimumPublishInterval;
           oldHumidity = newHumidity;
         }
       }
@@ -450,22 +582,22 @@ void loop()
       uint8_t rssi= WiFi.RSSI();
       if (abs(oldRssi-rssi)>rssiTolerance) 
       {
-        publishDouble("RSSI", rssi, "dB");
+        publishDouble(publishedTopics[ptRssi], rssi, "dB");
         nextPublish[ptRssi] = millis() + minimumPublishInterval;
-        int todo; // make a publish int method
         oldRssi = rssi;
       }
     }
 
     if (millis()>nextPublish[ptSignOfLife])
     {
-        publishString(subscribedTopics[stSignOfLife], UTC.dateTime(myTimeFormat).c_str(), true);
+        publishString(publishedTopics[ptSignOfLife], UTC.dateTime(myTimeFormat).c_str());
         nextPublish[ptSignOfLife] = millis() + signOfLiveInterval;
     }
   }
   else
   {
-    int todo; // error handling
+    //int todo; // error handling
+    // happens in next loop interation
   }
 
   if (millis()>nextTimeSync)

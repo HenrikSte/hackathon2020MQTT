@@ -157,7 +157,6 @@ void connect(bool reconnecting=false)
   if (reconnecting)
   {
     Serial.println("** reconnecting! **");
-    int todo; //reconnect procedure, e.g. fetching values
   }
 
   Serial.print("checking wifi...");
@@ -373,7 +372,8 @@ void setup()
   //SPI.begin(PIN_CLK,PIN_MISO,PIN_MOSI, PIN_SS);
 #endif
 
-  
+  e.printLabel();
+
   Serial.println("\n**** Setup() complete. ****\n");
 }
 

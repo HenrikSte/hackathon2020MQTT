@@ -331,6 +331,7 @@ void messageReceived(String &topic, String &payload)
     Serial.println("** new Data! ");
     // e.showText(font9, payload.c_str());
     dataPayload = payload;
+
     int todo; // send data to elabel;
   }
   else if (removePrefix(topic) == removePrefix(layoutBaseTopic + layoutName))

@@ -71,9 +71,8 @@ class ePaper
     GxEPD_Class display;
 
     void showText( const GFXfont* f, const char* text);
-
-
-
+    void rederLabel( const String& data, const String& layout);
+    
     void showFont(const char name[], const GFXfont* f);
     void printHLine(uint16_t y, uint16_t width, uint16_t color);
     uint16_t printCenteredText(uint16_t y, const GFXfont* f, uint16_t color, const char* text);

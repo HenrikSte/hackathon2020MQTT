@@ -57,6 +57,12 @@ void ePaper::showFontCallback()
 
 */
 
+void ePaper::rederLabel( const String & data,  const String & layout)
+{
+
+}
+
+
 void ePaper::showText( const GFXfont* f,
               const char* text)
 {

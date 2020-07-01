@@ -20,7 +20,6 @@
 
 ePaper e;
 
-#define topicPrefix "pasx/sensordata/" + WiFi.macAddress() + "/"
 #define minimumPublishInterval 5000
 #define signOfLiveInterval  60000
 #define timeSyncInterval 60 * 60 * 1000
@@ -67,16 +66,29 @@ bool publishTemperature = true;
 bool publishHumidity    = true;
 bool publishRssi        = false;
 
-const char* prefixPlaceHolder   = "$prefix$";
-const char* subscribedTopics [] = { "$prefix$config", "$prefix$signOfLife"  };
-enum enumSubscribedTopics         {  stConfig,         stSignOfLife,        stLast };
+#define dataTopicPrefix   "pasx/sensordata/" + myAlias + "/data/"
+#define configTopicPrefix  "sensors/" + WiFi.macAddress() + "/config/"
 
-const char* layoutBaseTopic = "$prefix$layouts/";
+const char* dataPrefixPlaceHolder   = "$dataPrefix$";
+const char* configPrefixPlaceHolder = "$configPrefix$";
+const char* subscribedTopics [] = { "$configPrefix$config", "$configPrefix$signOfLife"  };
+enum enumSubscribedTopics         {  stConfig,               stSignOfLife,             stLast };
+
+const char* publishedTopics [] = { "$configPrefix$signOfLife", "$dataPrefix$temperature", "$dataPrefix$humidity", "$dataPrefix$rssi"};
+enum  enumPublishedTopics         { ptSignOfLife,             ptTemperature,             ptHumidity,             ptRssi,                 ptLast};
+
+
+const char* layoutBaseTopic = "layouts/";
 String layoutName;   // name (topic = prefix + name) of Layout
 String layout;       // actual layout data as JSON
 
 String dataTopic;    // where to pick up data 
 String dataPayload;  // actual data as json
+
+String myAlias;
+
+bool dataPayloadHasChanged = false;
+bool layoutHasChanged      = false;
 
 
 void toggleLed()
@@ -114,8 +126,10 @@ __AC_LINK__
 String removePrefix(const String& fullTopic)
 {
   String topic = fullTopic;
-  topic.replace(topicPrefix,"");
-  topic.replace(prefixPlaceHolder,"");
+  topic.replace(configTopicPrefix,"");
+  topic.replace(configPrefixPlaceHolder,"");
+  topic.replace(dataTopicPrefix,"");
+  topic.replace(dataPrefixPlaceHolder,"");
   return topic;
 }
 
@@ -123,7 +137,8 @@ String addPrefix(const String& topic)
 {
   String fullTopic;
   fullTopic = String(topic);
-  fullTopic.replace(prefixPlaceHolder, topicPrefix);
+  fullTopic.replace(dataPrefixPlaceHolder, dataTopicPrefix);
+  fullTopic.replace(configPrefixPlaceHolder, configTopicPrefix);
   return fullTopic;
 }
 
@@ -168,21 +183,24 @@ bool subscribeDataTopic( const String& newDataTopic)
 {
   bool success = true;
 
-  if (dataTopic.length())
+  if (newDataTopic != dataTopic)
   {
-    unsubscribe(dataTopic);
-    dataTopic = "";
-  }
-  
-  if (newDataTopic.length())
-  {
-    if (!subscribe(newDataTopic))
+    if (dataTopic.length())
     {
-      success = false;
+      unsubscribe(dataTopic);
+      dataTopic = "";
     }
-    else
+    
+    if (newDataTopic.length())
     {
-      dataTopic = newDataTopic;
+      if (!subscribe(newDataTopic))
+      {
+        success = false;
+      }
+      else
+      {
+        dataTopic = newDataTopic;
+      }
     }
   }
   return success;
@@ -194,23 +212,26 @@ bool subscribeLayoutTopic(const String& newLayoutName)
 {
   bool success = true;
 
-  String topic;
-  if (layoutName.length())
+  if (newLayoutName != layoutName)
   {
-    topic = layoutBaseTopic + layoutName;
-    unsubscribe(topic);
-    layoutName = "";
-  }
-  if (newLayoutName.length())
-  {
-    topic = layoutBaseTopic + newLayoutName;
-    if (!subscribe(topic))
+    String topic;
+    if (layoutName.length())
     {
-      success = false;
+      topic = layoutBaseTopic + layoutName;
+      unsubscribe(topic);
+      layoutName = "";
     }
-    else
+    if (newLayoutName.length())
     {
-      layoutName = newLayoutName;
+      topic = layoutBaseTopic + newLayoutName;
+      if (!subscribe(topic))
+      {
+        success = false;
+      }
+      else
+      {
+        layoutName = newLayoutName;
+      }
     }
   }
   return success;
@@ -316,11 +337,17 @@ void messageReceived(String &topic, String &payload)
     DynamicJsonDocument doc(512);
     deserializeJson(doc, payload);
     JsonObject obj = doc.as<JsonObject>();
-    publishTemperature = obj["publishTemperature"];
-    publishHumidity    = obj["publishHumidity"];
-    publishRssi        = obj["publishRssi"];
-    String newDataTopic          = obj["dataTopic"];
-    String newLayoutName         = obj["layoutName"];
+    publishTemperature   = obj["publishTemperature"];
+    publishHumidity      = obj["publishHumidity"];
+    publishRssi          = obj["publishRssi"];
+    String newDataTopic  = obj["dataTopic"];
+    String newLayoutName = obj["layoutName"];
+    String newAlias      = obj["alias"];
+
+    if (newAlias.length())
+    {
+      myAlias = newAlias;
+    }
 
     subscribeDataTopic(newDataTopic);     // dynamic subscribes
     subscribeLayoutTopic(newLayoutName);  //
@@ -331,8 +358,6 @@ void messageReceived(String &topic, String &payload)
     Serial.println("** new Data! ");
     // e.showText(font9, payload.c_str());
     dataPayload = payload;
-
-    int todo; // send data to elabel;
   }
   else if (removePrefix(topic) == removePrefix(layoutBaseTopic + layoutName))
   {
@@ -345,44 +370,12 @@ void messageReceived(String &topic, String &payload)
   {
     Serial.println("** SignOfLife: ");
   }
-/*
-  else if (removePrefix(topic) == removePrefix(subscribedTopics[stDisplayJson]))
-  {
-    Serial.println("** Display Json: " + topic + " - >" + payload + "<");
-    DynamicJsonDocument doc(512);
-    deserializeJson(doc, payload);
-    JsonObject obj = doc.as<JsonObject>();
-    String text = obj["text"];
-    int    size = obj["size"];
-    
-    const GFXfont* f;
-    switch (size)
-    {
-      case 9:
-        f = font9;
-        break;
-      case 12:
-        f = font12;
-        break;
-      case 18:
-        f = font18;
-        break;
-      case 24:
-        f = font24;
-        break;
 
-      default:
-        f = font9;
-        break;
-    };
-
-    e.showText(f, text.c_str());
-  }
-*/
 }
 
 bool publishString(const char* topic, const char* s)
 {
+  bool success = true;
   String fullTopic = addPrefix(topic);
 
   Serial.print("publishing ");
@@ -390,16 +383,24 @@ bool publishString(const char* topic, const char* s)
   Serial.print(" as ");
   Serial.print(s);
 
-  checkConnection(); // vermutlich überflüssig
 
-  bool success = MQTTclient.publish(fullTopic, s, true, 0);
-  if (!success)
+  if (fullTopic.indexOf("//") < 0) // if myAlias is not set we will have a topic//topic. Bit of a hack...
   {
-    Serial.print(" publish FAILED ");
+    checkConnection(); // vermutlich überflüssig
+
+    success = MQTTclient.publish(fullTopic, s, true, 0);
+    if (!success)
+    {
+      Serial.print(" publish FAILED ");
+    }
+    else
+    {
+      Serial.println(" ok");
+    }
   }
   else
   {
-    Serial.println(" ok");
+    Serial.println(" ok, but my ALIAS not set");
   }
 
   toggleLed();
@@ -475,7 +476,7 @@ void setup()
   Serial.println(WiFi.macAddress().c_str());
   Serial.print("My IP: "); 
   Serial.println(WiFi.localIP());
-  
+
   syncTime();
 
   Serial.print("Connecting MQTT to ");
@@ -511,8 +512,6 @@ void loop()
   static float          oldTemperature;
   static float          oldHumidity;
   static uint8_t        oldRssi;
-  static const char* publishedTopics [] = { "$prefix$signOfLife", "$prefix$temperature", "$prefix$humidity", "$prefix$rssi"};
-  enum  enumPublishedTopics                { ptSignOfLife,         ptTemperature,         ptHumidity,         ptRssi,                 ptLast};
   static unsigned long    nextPublish[ptLast] = {0,0,0,0};
   
   static unsigned long nextTimeSync = timeSyncInterval;
@@ -524,7 +523,8 @@ void loop()
   ArduinoOTA.handle();
  
 
-  if (millis() >= nextDhtRead)
+  if ((publishTemperature || publishHumidity) 
+      && millis() >= nextDhtRead)
   {
     if (dht.getStatus() == 0)
     {

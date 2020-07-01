@@ -83,11 +83,11 @@ String layoutName;   // name (topic = prefix + name) of Layout
 String layout;       // actual layout data as JSON
 
 String dataTopic;    // where to pick up data 
-String dataPayload;  // actual data as json
+String data;  // actual data as json
 
 String myAlias;
 
-bool dataPayloadHasChanged = false;
+bool dataHasChanged = false;
 bool layoutHasChanged      = false;
 
 
@@ -146,7 +146,7 @@ bool unsubscribe(const String& topic)
 {
   String fullTopic = addPrefix(topic);
   Serial.print("UNSUBscribing ");
-  Serial.println(fullTopic);
+  Serial.print(fullTopic);
   bool success = MQTTclient.unsubscribe(fullTopic);
   if (!success)
   {
@@ -172,8 +172,6 @@ bool subscribe(const String& topic)
   }
   else
   {
-    int todo; // delay vermutlich unnötig
-    delay(100);
     Serial.println(" ok");
   }
   return success;
@@ -357,14 +355,15 @@ void messageReceived(String &topic, String &payload)
   {
     Serial.println("** new Data! ");
     // e.showText(font9, payload.c_str());
-    dataPayload = payload;
+    dataHasChanged = true;
+    data = payload;
   }
   else if (removePrefix(topic) == removePrefix(layoutBaseTopic + layoutName))
   {
     Serial.println("** new Layout! ");
     // e.showText(font9, payload.c_str());
     layout = payload;
-    int todo; // send layout to elabel;
+    layoutHasChanged = true;
   }
   else if (removePrefix(topic) == removePrefix(subscribedTopics[stSignOfLife]))
   {
@@ -599,6 +598,15 @@ void loop()
   {
     //int todo; // error handling
     // happens in next loop interation
+  }
+
+  if ((layoutHasChanged || dataHasChanged)
+   && (layout.length() && data.length()))
+  {
+    
+    e.rederLabelTest(data, layout);
+    layoutHasChanged = false;
+    dataHasChanged = false;
   }
 
   if (millis()>nextTimeSync)

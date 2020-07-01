@@ -72,6 +72,8 @@ class ePaper
 
     void showText( const GFXfont* f, const char* text);
     void rederLabel( const String& data, const String& layout);
+
+    void rederLabelTest( const String& data, const String& layout);
     
     void showFont(const char name[], const GFXfont* f);
     void printHLine(uint16_t y, uint16_t width, uint16_t color);

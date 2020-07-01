@@ -152,6 +152,17 @@ void ePaper::rederLabel(const String& data, const String& layout)
   display.update();
 }
 
+void ePaper::rederLabelTest( const String & data,  const String & layout)
+{
+  Serial.println("***** test Rendering *****");
+  unsigned long startTime = millis();
+  showText(font9, String(data+layout).c_str());
+  Serial.print("********** ");
+  Serial.print(millis() - startTime);
+  Serial.println("ms *****");
+
+}
+
 
 void ePaper::showText( const GFXfont* f,
               const char* text)

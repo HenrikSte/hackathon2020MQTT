@@ -88,18 +88,16 @@ void ePaper::rederLabel(const String& data, const String& layout)
 
 	DynamicJsonDocument doc(512);
 	//deserializeJson(doc, layout);
-	deserializeJson(doc, "[{\"type\":\"centeredText\",\"y\":10,\"size\":18,\"color\":\"black\",\"text\":\"test$id$\"},{\"type\":\"leftText\"},{\"type\":\"hline\",\"y\":40,\"w\":4,\"color\":\"black\"}]");
+	deserializeJson(doc, "[{\"type\":\"centeredText\",\"y\":2,\"size\":18,\"color\":\"black\",\"text\":\"test$id$\"},{\"type\":\"leftText\"},{\"type\":\"hline\",\"y\":40,\"w\":4,\"color\":\"black\"}]");
 	// extract the values
 	JsonArray array = doc.as<JsonArray>();
 	for(JsonVariant v : array) {
 		JsonObject obj = v.as<JsonObject>();
 		String type = obj["type"];
 		if (type.equals("centeredText")) {
-			uint16_t y = obj["y"];
 
-			//läuft das?
+			uint16_t y = obj["y"];
 			uint16_t color = helperExtractColor(obj["color"]);
-      //läuft das?
       const GFXfont* font = helperSizeToFont(obj["size"]);
 
 			String rawtext = obj["text"];
@@ -114,9 +112,11 @@ void ePaper::rederLabel(const String& data, const String& layout)
       if (result == REGEXP_MATCHED)
       {
         // matching offsets in ms.capture
+        String prefix = ms.GetCapture (buf, 0);
         String key = ms.GetCapture (buf, 1);
-        String foo = dataDoc[key];
-        text = foo;
+        String sufix = ms.GetCapture (buf, 2);
+        String variableValue = dataDoc[key];
+        text = prefix + variableValue + sufix;
       }
       else if (result == REGEXP_NOMATCH)
       {
@@ -183,6 +183,9 @@ void ePaper::showText( const GFXfont* f,
 }
 
 void ePaper::printHLine(uint16_t y, uint16_t width, uint16_t color) {
+  #ifndef HAS_RED_COLOR
+    if (color == GxEPD_RED) {color = GxEPD_BLACK;}
+  #endif
   display.fillRect(0,y,GxEPD_WIDTH,width,color);
 }
 

@@ -331,13 +331,14 @@ void messageReceived(String &topic, String &payload)
     Serial.println("** new config! ");
 
     /*
-    {
-      "publishTemperature":true,
-      "publishHumidity":true,
-      "publishRssi":true,
-      "dataTopic":"pasx/equipment",
-      "layoutName":"standard"
-    }
+{
+  "publishTemperature": true,
+  "publishHumidity": true,
+  "publishRssi": true,
+  "dataTopic": "pasx/equipment/BC40N01",
+  "layoutName": "standard",
+  "alias": "sensor42"
+}
     */
 
     DynamicJsonDocument doc(512);
@@ -626,7 +627,7 @@ void loop()
    && (layout.length() && data.length()))
   {
     
-    e.renderLabelTest(data, layout);
+    e.renderLabel(data, layout);
     layoutHasChanged = false;
     dataHasChanged = false;
   }

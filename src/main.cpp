@@ -496,7 +496,8 @@ void setup()
   //SPI.begin(PIN_CLK,PIN_MISO,PIN_MOSI, PIN_SS);
 #endif
 
-  e.printLabel();
+  Serial.println("Render Label...");
+  e.rederLabel("","");
 
   
   Serial.println("\n**** Setup() complete. ****\n");

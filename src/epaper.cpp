@@ -69,26 +69,51 @@ const GFXfont* helperSizeToFont(uint8_t size) {
 }
 
 
-// uint16_t helperGetText(const String& data, const String& text) {
-//         uint16_t color;
-// 	if (Vc.equals("red")) {color =GxEPD_RED;}
-// 	else if (c.equals("white")) {color =GxEPD_WHITE;}
-// 	else {color =GxEPD_BLACK;}
-// 	return color;
-// }
+String helperGetText(DynamicJsonDocument &dataDoc, const String& rawtext) {
+  String text;
+  MatchState ms;
+  char buf [100];
+  strcpy (buf, rawtext.c_str());
 
+  ms.Target(buf);
+
+  char result = ms.Match ("([^$]*)$(%a+)$([^$]*)", 0);
+  if (result == REGEXP_MATCHED)
+  {
+    // matching offsets in ms.capture
+    String prefix = ms.GetCapture (buf, 0);
+    String key = ms.GetCapture (buf, 1);
+    String sufix = ms.GetCapture (buf, 2);
+    String variableValue = dataDoc[key];
+    text = prefix + variableValue + sufix;
+  }
+  else if (result == REGEXP_NOMATCH)
+  {
+    // no match - no variable to replace
+    text = rawtext;
+  }
+  else
+  {
+    // some sort of error
+    text = "error";
+  }
+  return text;
+ }
+
+/**
+ * 
+ */
 void ePaper::rederLabel(const String& data, const String& layout) 
 {
   display.fillScreen(GxEPD_WHITE);
 
-	String dat = "{\"id\":\"myID\"}";
+	String dat = "{\"id\":\"myID\",\"prod\":\"HBP36748\"}";
   DynamicJsonDocument dataDoc(512);
   deserializeJson(dataDoc,dat);
-  JsonObject dataJson = dataDoc.as<JsonObject>();
 
 	DynamicJsonDocument doc(512);
 	//deserializeJson(doc, layout);
-	deserializeJson(doc, "[{\"type\":\"centeredText\",\"y\":2,\"size\":18,\"color\":\"black\",\"text\":\"test$id$\"},{\"type\":\"leftText\"},{\"type\":\"hline\",\"y\":40,\"w\":4,\"color\":\"black\"}]");
+	deserializeJson(doc, "[{\"type\":\"centeredText\",\"y\":2,\"size\":18,\"color\":\"black\",\"text\":\"test$id$?\"},{\"type\":\"leftText\",\"y\":48,\"size\":9,\"color\":\"black\",\"text\":\"Prod: $prod$\"},{\"type\":\"hline\",\"y\":40,\"w\":4,\"color\":\"black\"}]");
 	// extract the values
 	JsonArray array = doc.as<JsonArray>();
 	for(JsonVariant v : array) {
@@ -99,37 +124,8 @@ void ePaper::rederLabel(const String& data, const String& layout)
 			uint16_t y = obj["y"];
 			uint16_t color = helperExtractColor(obj["color"]);
       const GFXfont* font = helperSizeToFont(obj["size"]);
+			String text = helperGetText(dataDoc, obj["text"]);
 
-			String rawtext = obj["text"];
-      String text;
-      MatchState ms;
-      char buf [100];
-      strcpy (buf, rawtext.c_str());
-
-      ms.Target(buf);
-
-      char result = ms.Match ("(%a*)$(%a+)$(%a*)", 0);
-      if (result == REGEXP_MATCHED)
-      {
-        // matching offsets in ms.capture
-        String prefix = ms.GetCapture (buf, 0);
-        String key = ms.GetCapture (buf, 1);
-        String sufix = ms.GetCapture (buf, 2);
-        String variableValue = dataDoc[key];
-        text = prefix + variableValue + sufix;
-      }
-      else if (result == REGEXP_NOMATCH)
-      {
-        // no match - no variable to replace
-        text = rawtext;
-      }
-      else
-      {
-        // some sort of error
-        text = "error";
-      }
-
-			
 			printCenteredText(y,font,color,text.c_str());
 
 		} else if (type.equals("hline")) {
@@ -145,6 +141,12 @@ void ePaper::rederLabel(const String& data, const String& layout)
 			printHLine(y,w, color);
 
 		} else if (type.equals("leftText")) {
+			uint16_t y = obj["y"];
+			uint16_t color = helperExtractColor(obj["color"]);
+      const GFXfont* font = helperSizeToFont(obj["size"]);
+			String text = helperGetText(dataDoc, obj["text"]);
+
+			printLeftAlignedText(y,font,color,text.c_str());
 		
 		}
 

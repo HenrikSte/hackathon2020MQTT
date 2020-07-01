@@ -107,13 +107,13 @@ void ePaper::rederLabel(const String& data, const String& layout)
 {
   display.fillScreen(GxEPD_WHITE);
 
-	String dat = "{\"id\":\"myID\",\"prod\":\"HBP36748\"}";
+	//String dat = "{\"id\":\"myID\",\"prod\":\"HBP36748\"}";
   DynamicJsonDocument dataDoc(512);
-  deserializeJson(dataDoc,dat);
+  deserializeJson(dataDoc,data);
 
 	DynamicJsonDocument doc(512);
-	//deserializeJson(doc, layout);
-	deserializeJson(doc, "[{\"type\":\"centeredText\",\"y\":2,\"size\":18,\"color\":\"black\",\"text\":\"test$id$?\"},{\"type\":\"leftText\",\"y\":48,\"size\":9,\"color\":\"black\",\"text\":\"Prod: $prod$\"},{\"type\":\"hline\",\"y\":40,\"w\":4,\"color\":\"black\"}]");
+	deserializeJson(doc, layout);
+	//deserializeJson(doc, "[{\"type\":\"centeredText\",\"y\":2,\"size\":18,\"color\":\"black\",\"text\":\"test$id$?\"},{\"type\":\"leftText\",\"y\":48,\"size\":9,\"color\":\"black\",\"text\":\"Prod: $prod$\"},{\"type\":\"hline\",\"y\":40,\"w\":4,\"color\":\"black\"}]");
 	// extract the values
 	JsonArray array = doc.as<JsonArray>();
 	for(JsonVariant v : array) {

@@ -1,6 +1,7 @@
 #include "epaper.h"
 #include "ArduinoJson.h"
 #include <Regexp.h>
+#include "bitmaps.h"
 
 #include GxEPD_BitmapExamples
 
@@ -160,6 +161,22 @@ void ePaper::renderLabelTest( const String & data,  const String & layout)
   Serial.print(millis() - startTime);
   Serial.println("ms *****");
 
+}
+
+void ePaper::splashScreen()
+{
+  display.fillScreen(GxEPD_WHITE);
+
+  if (GxEPD_WIDTH == 800)
+  {
+    display.drawBitmap(0,0,msiHackathon800x480,800,480, GxEPD_BLACK);
+  }
+  else if (GxEPD_WIDTH == 400)
+  {
+    display.drawBitmap(0,0,msiHackathon400x300,400,300, GxEPD_BLACK);
+  }
+
+  display.update(); 
 }
 
 

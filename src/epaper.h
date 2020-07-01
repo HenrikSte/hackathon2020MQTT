@@ -74,6 +74,7 @@ class ePaper
     void renderLabel( const String& data, const String& layout);
 
     void renderLabelTest( const String& data, const String& layout);
+    void splashScreen();
     
     void showFont(const char name[], const GFXfont* f);
     void printHLine(uint16_t y, uint16_t width, uint16_t color);

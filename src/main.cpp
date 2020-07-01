@@ -517,7 +517,8 @@ void setup()
 #endif
 
   Serial.println("Render Label...");
-  e.renderLabel("","");
+  //e.renderLabel("","");
+  e.splashScreen();
 
   
   Serial.println("\n**** Setup() complete. ****\n");

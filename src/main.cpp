@@ -75,14 +75,20 @@ const char* subscribedTopics [] = { "$configPrefix$config", "$configPrefix$signO
 enum enumSubscribedTopics         {  stConfig,               stSignOfLife,             stLast };
 
 const char* publishedTopics [] = { "$configPrefix$signOfLife", "$dataPrefix$temperature", "$dataPrefix$humidity", "$dataPrefix$rssi"};
-enum  enumPublishedTopics         { ptSignOfLife,             ptTemperature,             ptHumidity,             ptRssi,                 ptLast};
+enum  enumPublishedTopics         { ptSignOfLife,               ptTemperature,             ptHumidity,             ptRssi,                 ptLast};
 
 
 const char* layoutBaseTopic = "layouts/";
-String layoutName;   // name (topic = prefix + name) of Layout
-String layout;       // actual layout data as JSON
 
-String dataTopic;    // where to pick up data 
+String layoutName;      // name (topic = prefix + name) of Layout
+String newLayoutName;   // set in MessageRecieved, used in loop
+String layout;          // actual layout data as JSON
+bool   layoutNameHasChanged = false;   
+
+
+String dataTopic;      // where to pick up data 
+String newDataTopic;   // set in MessageRecieved, used in loop
+bool   dataTopicHasChanged = false;   
 String data;  // actual data as json
 
 String myAlias;
@@ -176,6 +182,8 @@ bool subscribe(const String& topic)
   }
   return success;
 }
+
+
 
 bool subscribeDataTopic( const String& newDataTopic)
 {
@@ -335,20 +343,32 @@ void messageReceived(String &topic, String &payload)
     DynamicJsonDocument doc(512);
     deserializeJson(doc, payload);
     JsonObject obj = doc.as<JsonObject>();
-    publishTemperature   = obj["publishTemperature"];
-    publishHumidity      = obj["publishHumidity"];
-    publishRssi          = obj["publishRssi"];
-    String newDataTopic  = obj["dataTopic"];
-    String newLayoutName = obj["layoutName"];
-    String newAlias      = obj["alias"];
+    publishTemperature    = obj["publishTemperature"];
+    publishHumidity       = obj["publishHumidity"];
+    publishRssi           = obj["publishRssi"];
+    String _newDataTopic  = obj["dataTopic"];
+    String _newLayoutName = obj["layoutName"];
+    String newAlias       = obj["alias"];
 
     if (newAlias.length())
     {
       myAlias = newAlias;
     }
 
-    subscribeDataTopic(newDataTopic);     // dynamic subscribes
-    subscribeLayoutTopic(newLayoutName);  //
+    // async handling of dynamic subscibes:
+
+    if (_newDataTopic.length())
+    {
+      newDataTopic = _newDataTopic;
+      dataTopicHasChanged = true;
+    }
+
+    if (_newLayoutName.length())
+    {
+      newLayoutName = _newLayoutName;
+      layoutNameHasChanged = true;
+    }
+ 
     
   }
   else if (topic == dataTopic)
@@ -497,7 +517,7 @@ void setup()
 #endif
 
   Serial.println("Render Label...");
-  e.rederLabel("","");
+  e.renderLabel("","");
 
   
   Serial.println("\n**** Setup() complete. ****\n");
@@ -605,9 +625,18 @@ void loop()
    && (layout.length() && data.length()))
   {
     
-    e.rederLabelTest(data, layout);
+    e.renderLabelTest(data, layout);
     layoutHasChanged = false;
     dataHasChanged = false;
+  }
+
+  if (dataTopicHasChanged)
+  {
+    subscribeDataTopic(newDataTopic);     // dynamic subscribes
+  }
+  if (layoutNameHasChanged)
+  {
+    subscribeLayoutTopic(newLayoutName);  //
   }
 
   if (millis()>nextTimeSync)

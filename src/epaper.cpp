@@ -77,7 +77,7 @@ const GFXfont* helperSizeToFont(uint8_t size) {
 // 	return color;
 // }
 
-void ePaper::rederLabel(const String& data, const String& layout) 
+void ePaper::renderLabel(const String& data, const String& layout) 
 {
   display.fillScreen(GxEPD_WHITE);
 
@@ -152,7 +152,7 @@ void ePaper::rederLabel(const String& data, const String& layout)
   display.update();
 }
 
-void ePaper::rederLabelTest( const String & data,  const String & layout)
+void ePaper::renderLabelTest( const String & data,  const String & layout)
 {
   Serial.println("***** test Rendering *****");
   unsigned long startTime = millis();

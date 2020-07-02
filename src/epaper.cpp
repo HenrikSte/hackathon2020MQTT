@@ -163,7 +163,6 @@ void ePaper::renderLabel(const String& data, const String& layout)
 			uint16_t color = helperExtractColor(obj["color"]);
       const GFXfont* font = helperSizeToFont(obj["size"], obj["bold"]);
 			String text = helperGetText(dataDoc, obj["text"]);
-
 			printCenteredText(y,font,color,text.c_str());
 
 		} else if (type.equals("hline")) {
@@ -216,38 +215,43 @@ void ePaper::printHLine(uint16_t y, uint16_t width, uint16_t color) {
 }
 
 uint16_t ePaper::printCenteredText(uint16_t y, const GFXfont* f, uint16_t color, const char* text) {
-  display.setFont(f);
-  int16_t x1,y1;
+  
   uint16_t textWidth,textHeight;
-  uint16_t heightOfOneLine;
-  
-  display.getTextBounds("W",0,y,&x1,&y1,&textWidth,&heightOfOneLine);
-  display.getTextBounds(text,0,y,&x1,&y1,&textWidth,&textHeight);
-  /*
-  display.fillRect(x1,y1+height,width,height,GxEPD_BLACK);
-  color=GxEPD_WHITE;
-  */
-  
-  uint16_t xOffset = (GxEPD_WIDTH-textWidth)/2;
-  uint16_t yOffset = y                   // Position from layout
-                     + (heightOfOneLine); // origin of text is bottom left, so we add on line height, so a 0,0 will draw at top left corner of display
+  if (text && strlen(text))
+  {
+    display.setFont(f);
+    int16_t x1,y1;
+    uint16_t heightOfOneLine;
+    
+    display.getTextBounds("W",0,y,&x1,&y1,&textWidth,&heightOfOneLine);
+    display.getTextBounds(text,0,y,&x1,&y1,&textWidth,&textHeight);
+    /*
+    display.fillRect(x1,y1+height,width,height,GxEPD_BLACK);
+    color=GxEPD_WHITE;
+    */
+    
+    uint16_t xOffset = (GxEPD_WIDTH-textWidth)/2;
+    uint16_t yOffset = y                   // Position from layout
+                      + (heightOfOneLine); // origin of text is bottom left, so we add on line height, so a 0,0 will draw at top left corner of display
 
-   if (textHeight > heightOfOneLine) 
-   {                     
-     yOffset -= (textHeight-heightOfOneLine)/2; // for multiple Lines we go up 1/2 the difference, kinda-vertical-center
-   }
+    if (textHeight > heightOfOneLine) 
+    {                     
+      yOffset -= (textHeight-heightOfOneLine)/2; // for multiple Lines we go up 1/2 the difference, kinda-vertical-center
+    }
 
-  display.setCursor(xOffset,yOffset);
-  display.setTextColor(color);
-  display.println(text);
-  
+    display.setCursor(xOffset,yOffset);
+    display.setTextColor(color);
+    display.println(text);
+
+  }    
   //return hight of line
   return textHeight;
 }
 
 uint16_t ePaper::printLeftAlignedText(uint16_t y, const GFXfont* f, uint16_t color, const char* text) {
-  display.setFont(f);
+
   int16_t x1,y1;
+<<<<<<< Updated upstream
   uint16_t textWidth,textHeight,heightOfOneLine;
   display.getTextBounds("W",0,y,&x1,&y1,&textWidth,&heightOfOneLine);
   display.getTextBounds(text,0,y,&x1,&y1,&textWidth,&textHeight);
@@ -259,6 +263,20 @@ uint16_t ePaper::printLeftAlignedText(uint16_t y, const GFXfont* f, uint16_t col
   display.setTextColor(color);
   display.println(text);
 
+=======
+  uint16_t width,height;
+  if (text && strlen(text))
+  {
+    display.setFont(f);
+    display.getTextBounds(text,0,y,&x1,&y1,&width,&height);
+    //display.fillRect(x1,y1+height,width,height,GxEPD_BLACK);
+    //color=GxEPD_WHITE;
+
+    display.setCursor(0,y+height);
+    display.setTextColor(color);
+    display.println(text);
+  }
+>>>>>>> Stashed changes
   //return hight of line
   return textHeight;
 }
@@ -338,7 +356,7 @@ void ePaper::splashScreen()
 
 
 void ePaper::showText( const GFXfont* f,
-              const char* text)
+                       const char* text)
 {
   display.fillScreen(GxEPD_WHITE);
   #if defined(HAS_RED_COLOR)

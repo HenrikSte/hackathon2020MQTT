@@ -359,7 +359,7 @@ uint16_t ePaper::printRightAlignedText(uint16_t y, const GFXfont* f, uint16_t co
       yOffset -= (heightOfTwoLines-heightOfOneLine)/2; // for multiple Lines we go up 1/2 the difference, kinda-vertical-center
     }
 
-    display.setCursor(GxEPD_WIDTH-textWidth,y+heightOfOneLine);
+    display.setCursor(GxEPD_WIDTH-textWidth-2,y+heightOfOneLine);
     display.setTextColor(color);
     display.println(text);
   }

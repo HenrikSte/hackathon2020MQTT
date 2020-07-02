@@ -74,11 +74,12 @@ const GFXfont* helperSizeToFont(uint8_t size, bool bold) {
 }
 
 
+char buf [256];
+char raw [256];
+
 String helperGetText(DynamicJsonDocument &dataDoc, const String& rawtext) {
   String text = rawtext;
   MatchState ms;
-  char buf [100];
-  char raw [100];
   strcpy (raw, rawtext.c_str());
 
   ms.Target(raw);
@@ -108,8 +109,11 @@ String helperGetText(DynamicJsonDocument &dataDoc, const String& rawtext) {
 
 
       //TODO how to handle bool and numbers?
-      String variableValue = dataDoc[key].as<const char*>();
-      if (!variableValue) {
+      String variableValue = (const String&)dataDoc[key];
+      if (variableValue == "null") {
+        variableValue = "";
+      }
+      else if (!variableValue) {
         variableValue = placeholder;
       }
 
@@ -188,11 +192,11 @@ void ePaper::renderLabel(const String& data, const String& layout)
   display.fillScreen(GxEPD_WHITE);
 
 	//String dat = "{\"id\":\"myID\",\"prod\":\"HBP36748\"}";
-  DynamicJsonDocument dataDoc(2048);
+  DynamicJsonDocument dataDoc(4096);
   deserializeJson(dataDoc,data);
 
 
-	DynamicJsonDocument layoutDoc(2048);
+	DynamicJsonDocument layoutDoc(4096);
 	deserializeJson(layoutDoc, layout);
 
 	//deserializeJson(doc, "[{\"type\":\"centeredText\",\"y\":2,\"size\":18,\"color\":\"black\",\"text\":\"test$id$?\"},{\"type\":\"leftText\",\"y\":48,\"size\":9,\"color\":\"black\",\"text\":\"Prod: $prod$\"},{\"type\":\"hline\",\"y\":40,\"w\":4,\"color\":\"black\"}]");
@@ -267,13 +271,11 @@ uint16_t ePaper::printCenteredText(uint16_t y, const GFXfont* f, uint16_t color,
     display.setFont(f);
     int16_t x1,y1;
     uint16_t heightOfOneLine;
+    uint16_t heightOfTwoLines;
     
-    display.getTextBounds("W",0,y,&x1,&y1,&textWidth,&heightOfOneLine);
+    display.getTextBounds("QW@$_",0,y,&x1,&y1,&textWidth,&heightOfOneLine);
+    display.getTextBounds("QW@$_\r\nQW@$_",0,y,&x1,&y1,&textWidth,&heightOfTwoLines);
     display.getTextBounds(text,0,y,&x1,&y1,&textWidth,&textHeight);
-    /*
-    display.fillRect(x1,y1+height,width,height,GxEPD_BLACK);
-    color=GxEPD_WHITE;
-    */
     
     uint16_t xOffset = (GxEPD_WIDTH-textWidth)/2;
     uint16_t yOffset = y                   // Position from layout
@@ -281,7 +283,7 @@ uint16_t ePaper::printCenteredText(uint16_t y, const GFXfont* f, uint16_t color,
 
     if (textHeight > heightOfOneLine) 
     {                     
-      yOffset -= (textHeight-heightOfOneLine)/2; // for multiple Lines we go up 1/2 the difference, kinda-vertical-center
+      yOffset -= (heightOfTwoLines-heightOfOneLine)/2; // for multiple Lines we go up 1/2 the difference, kinda-vertical-center
     }
 
     display.setCursor(xOffset,yOffset);
@@ -296,20 +298,31 @@ uint16_t ePaper::printCenteredText(uint16_t y, const GFXfont* f, uint16_t color,
 uint16_t ePaper::printLeftAlignedText(uint16_t y, const GFXfont* f, uint16_t color, const char* text) {
 
   int16_t x1,y1;
-  uint16_t width,height;
+  uint16_t textWidth,textHeight;
   if (text && strlen(text))
   {
     display.setFont(f);
-    display.getTextBounds(text,0,y,&x1,&y1,&width,&height);
-    //display.fillRect(x1,y1+height,width,height,GxEPD_BLACK);
-    //color=GxEPD_WHITE;
+    uint16_t heightOfOneLine;
+    uint16_t heightOfTwoLines;
+    
+    display.getTextBounds("QW@$_",0,y,&x1,&y1,&textWidth,&heightOfOneLine);
+    display.getTextBounds("QW@$_\r\nQW@$_",0,y,&x1,&y1,&textWidth,&heightOfTwoLines);
+    display.getTextBounds(text,0,y,&x1,&y1,&textWidth,&textHeight);
+    
+    uint16_t yOffset = y                   // Position from layout
+                      + (heightOfOneLine); // origin of text is bottom left, so we add on line height, so a 0,0 will draw at top left corner of display
 
-    display.setCursor(0,y+height);
+    if (textHeight - heightOfOneLine > (heightOfOneLine/2)) 
+    {                     
+      yOffset -= (heightOfTwoLines-heightOfOneLine)/2; // for multiple Lines we go up 1/2 the difference, kinda-vertical-center
+    }
+    
+    display.setCursor(0,yOffset);
     display.setTextColor(color);
     display.println(text);
   }
   //return hight of line
-  return height;
+  return textHeight;
 }
 
 
@@ -349,6 +362,9 @@ void ePaper::renderLabelTest( const String & data,  const String & layout)
   Serial.print("********** ");
   Serial.print(millis() - startTime);
   Serial.println("ms *****");
+
+
+
 
 }
 

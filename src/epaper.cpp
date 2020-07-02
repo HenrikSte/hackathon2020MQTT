@@ -219,7 +219,7 @@ void ePaper::renderLabel(const String& data, const String& layout)
   		uint16_t color = helperExtractColor(obj["color"]);
       const GFXfont* font = helperSizeToFont(obj["size"], obj["bold"]);
 			String text = helperGetText(dataDoc, obj["text"]);
-			printCenteredText(y,font,color,text.c_str());
+			printCenteredText(y,font,color,text.c_str(), obj["fontSize"]);
 
 		} else if (type.equals("hline")) {
 			uint16_t y = obj["y"];
@@ -239,7 +239,7 @@ void ePaper::renderLabel(const String& data, const String& layout)
       const GFXfont* font = helperSizeToFont(obj["size"], obj["bold"]);
 			String text = helperGetText(dataDoc, obj["text"]);
 
-			printLeftAlignedText(y,font,color,text.c_str());
+			printLeftAlignedText(y,font,color,text.c_str(),obj["fontSize"]);
 
 		} else if (type.equals("rightText")) {
 			uint16_t y = obj["y"];
@@ -247,7 +247,8 @@ void ePaper::renderLabel(const String& data, const String& layout)
       const GFXfont* font = helperSizeToFont(obj["size"], obj["bold"]);
 			String text = helperGetText(dataDoc, obj["text"]);
 
-			printRightAlignedText(y,font,color,text.c_str());
+			printRightAlignedText(y,font,color,text.c_str(),obj["fontSize"]);
+		
 		}
 
 	}
@@ -270,12 +271,14 @@ void ePaper::printHLine(uint16_t y, uint16_t width, uint16_t color) {
   display.fillRect(0,y,GxEPD_WIDTH,width,color);
 }
 
-uint16_t ePaper::printCenteredText(uint16_t y, const GFXfont* f, uint16_t color, const char* text) {
+uint16_t ePaper::printCenteredText(uint16_t y, const GFXfont* f, uint16_t color, const char* text, int fontSize) {
   
   uint16_t textWidth,textHeight;
   if (text && strlen(text))
   {
     display.setFont(f);
+    display.setTextSize(fontSize);
+
     int16_t x1,y1;
     uint16_t heightOfOneLine;
     uint16_t heightOfTwoLines;
@@ -302,7 +305,7 @@ uint16_t ePaper::printCenteredText(uint16_t y, const GFXfont* f, uint16_t color,
   return textHeight;
 }
 
-uint16_t ePaper::printLeftAlignedText(uint16_t y, const GFXfont* f, uint16_t color, const char* text) {
+uint16_t ePaper::printLeftAlignedText(uint16_t y, const GFXfont* f, uint16_t color, const char* text, int fontSize) {
 
   int16_t x1,y1;
   uint16_t textHeight;
@@ -310,8 +313,9 @@ uint16_t ePaper::printLeftAlignedText(uint16_t y, const GFXfont* f, uint16_t col
   if (text && strlen(text))
   {
     display.setFont(f);
+    display.setTextSize(fontSize);
     uint16_t heightOfOneLine,heightOfTwoLines,textWidth;
-    
+
     display.getTextBounds("QW@$_",0,y,&x1,&y1,&textWidth,&heightOfOneLine);
     display.getTextBounds("QW@$_\r\nQW@$_",0,y,&x1,&y1,&textWidth,&heightOfTwoLines);
     display.getTextBounds(text,0,y,&x1,&y1,&textWidth,&textHeight);
@@ -332,7 +336,7 @@ uint16_t ePaper::printLeftAlignedText(uint16_t y, const GFXfont* f, uint16_t col
   return textHeight;
 }
 
-uint16_t ePaper::printRightAlignedText(uint16_t y, const GFXfont* f, uint16_t color, const char* text) {
+uint16_t ePaper::printRightAlignedText(uint16_t y, const GFXfont* f, uint16_t color, const char* text, int fontSize) {
 
   int16_t x1,y1;
   uint16_t textHeight;
@@ -340,6 +344,7 @@ uint16_t ePaper::printRightAlignedText(uint16_t y, const GFXfont* f, uint16_t co
   if (text && strlen(text))
   {
     display.setFont(f);
+    display.setTextSize(fontSize);
     uint16_t heightOfOneLine,heightOfTwoLines,textWidth;
     
     display.getTextBounds("QW@$_",0,y,&x1,&y1,&textWidth,&heightOfOneLine);
@@ -366,24 +371,24 @@ void ePaper::printLabel()
 {
   display.fillScreen(GxEPD_WHITE);
   // id
-  printCenteredText(5,font18,GxEPD_BLACK,"BC200N01");
+  printCenteredText(5,font18,GxEPD_BLACK,"BC200N01",0);
 
   //  top hline
   printHLine(40,4, GxEPD_BLACK);
 
   // details
-  printLeftAlignedText(48,font9,GxEPD_BLACK,"Prod: HBP36748");
-  printLeftAlignedText(66,font9,GxEPD_BLACK,"MO:   123467889999765");
+  printLeftAlignedText(48,font9,GxEPD_BLACK,"Prod: HBP36748",0);
+  printLeftAlignedText(66,font9,GxEPD_BLACK,"MO:   123467889999765",0);
 
   // statusbar
   printHLine(115,70, GxEPD_RED);
-  printCenteredText(133,font24,GxEPD_WHITE,"NOT CLEAN");
+  printCenteredText(133,font24,GxEPD_WHITE,"NOT CLEAN",0);
 
   // bottom hline
   printHLine(GxEPD_HEIGHT-40,4, GxEPD_BLACK);
 
   // batch
-  printCenteredText(GxEPD_HEIGHT-30,font18,GxEPD_BLACK,"BTPRD0001");
+  printCenteredText(GxEPD_HEIGHT-30,font18,GxEPD_BLACK,"BTPRD0001",0);
 
   //update
   display.update();
@@ -398,10 +403,6 @@ void ePaper::renderLabelTest( const String & data,  const String & layout)
   Serial.print("********** ");
   Serial.print(millis() - startTime);
   Serial.println("ms *****");
-
-
-
-
 }
 
 void ePaper::splashScreen()

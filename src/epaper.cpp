@@ -240,7 +240,7 @@ uint16_t ePaper::printCenteredText(uint16_t y, const GFXfont* f, uint16_t color,
     uint16_t yOffset = y                   // Position from layout
                       + (heightOfOneLine); // origin of text is bottom left, so we add on line height, so a 0,0 will draw at top left corner of display
 
-    if (textHeight > heightOfOneLine) 
+    if (textHeight - heightOfOneLine > (heightOfOneLine/2)) 
     {                     
       yOffset -= (heightOfTwoLines-heightOfOneLine)/2; // for multiple Lines we go up 1/2 the difference, kinda-vertical-center
     }
@@ -271,7 +271,7 @@ uint16_t ePaper::printLeftAlignedText(uint16_t y, const GFXfont* f, uint16_t col
     uint16_t yOffset = y                   // Position from layout
                       + (heightOfOneLine); // origin of text is bottom left, so we add on line height, so a 0,0 will draw at top left corner of display
 
-    if (textHeight > heightOfOneLine) 
+    if (textHeight - heightOfOneLine > (heightOfOneLine/2)) 
     {                     
       yOffset -= (heightOfTwoLines-heightOfOneLine)/2; // for multiple Lines we go up 1/2 the difference, kinda-vertical-center
     }

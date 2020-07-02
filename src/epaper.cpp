@@ -74,11 +74,12 @@ const GFXfont* helperSizeToFont(uint8_t size, bool bold) {
 }
 
 
+char buf [256];
+char raw [256];
+
 String helperGetText(DynamicJsonDocument &dataDoc, const String& rawtext) {
   String text = rawtext;
   MatchState ms;
-  char buf [100];
-  char raw [100];
   strcpy (raw, rawtext.c_str());
 
   ms.Target(raw);
@@ -321,6 +322,9 @@ void ePaper::renderLabelTest( const String & data,  const String & layout)
   Serial.print("********** ");
   Serial.print(millis() - startTime);
   Serial.println("ms *****");
+
+
+
 
 }
 

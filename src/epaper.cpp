@@ -101,13 +101,17 @@ String helperGetText(DynamicJsonDocument &dataDoc, const String& rawtext) {
     String variableValue;
     if (dataDoc.containsKey(key))
     {
-      variableValue = dataDoc[key].as<const char*>();
+      variableValue = (const String&)dataDoc[key];
     } 
     else
     {
       variableValue = "$" + key + "$";
     }
-    text = prefix + variableValue + sufix;
+    
+    text = prefix;
+    text += variableValue;
+    text += sufix;
+
 #ifdef DEBUG_RENDER
     Serial.print("prefix:");
     Serial.println(prefix);

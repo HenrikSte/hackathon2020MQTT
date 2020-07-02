@@ -252,7 +252,7 @@ void ePaper::renderLabel(const String& data, const String& layout)
 		}
 
 	}
-  Serial.print("***** redering took ");
+  Serial.print("***** rendering took ");
   Serial.print(millis() - startTime);
   Serial.println("ms *****");
   display.update();

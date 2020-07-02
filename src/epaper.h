@@ -27,6 +27,10 @@
 #include <Fonts/FreeMonoBold12pt7b.h>
 #include <Fonts/FreeMonoBold18pt7b.h>
 #include <Fonts/FreeMonoBold24pt7b.h>
+#include <Fonts/FreeMono9pt7b.h>
+#include <Fonts/FreeMono12pt7b.h>
+#include <Fonts/FreeMono18pt7b.h>
+#include <Fonts/FreeMono24pt7b.h>
 
 
 #include <GxIO/GxIO_SPI/GxIO_SPI.h>
@@ -54,10 +58,16 @@
 #endif
 
 
-#define font9  &FreeMonoBold9pt7b
-#define font12 &FreeMonoBold12pt7b
-#define font18 &FreeMonoBold18pt7b
-#define font24 &FreeMonoBold24pt7b
+#define font9b  &FreeMonoBold9pt7b
+#define font12b &FreeMonoBold12pt7b
+#define font18b &FreeMonoBold18pt7b
+#define font24b &FreeMonoBold24pt7b
+
+#define font9   &FreeMono9pt7b
+#define font12  &FreeMono12pt7b
+#define font18  &FreeMono18pt7b
+#define font24  &FreeMono24pt7b
+
 
 
 //SPIClass displaySPI;  

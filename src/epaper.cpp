@@ -4,7 +4,7 @@
 #include "bitmaps.h"
 #include "HardwareSerial.h"
 
-//#define DEBUG_RENDER
+#define DEBUG_RENDER
 
 //#include GxEPD_BitmapExamples
 
@@ -24,27 +24,52 @@ uint16_t helperExtractColor(const String& c) {
 }
 
 
-const GFXfont* helperSizeToFont(uint8_t size) {
+const GFXfont* helperSizeToFont(uint8_t size, bool bold) {
   const GFXfont* font;
-  switch (size)
+  if (bold)
   {
-    case 9:
-      font = font9;
-      break;
-    case 12:
-      font = font12;
-      break;
-    case 18:
-      font = font18;
-      break;
-    case 24:
-      font = font24;
-      break;
+    switch (size)
+    {
+      case 9:
+        font = font9b;
+        break;
+      case 12:
+        font = font12b;
+        break;
+      case 18:
+        font = font18b;
+        break;
+      case 24:
+        font = font24b;
+        break;
 
-    default:
-      font = font9;
-      break;
-  };
+      default:
+        font = font9b;
+        break;
+    };
+  }
+  else
+  {
+    switch (size)
+    {
+      case 9:
+        font = font9;
+        break;
+      case 12:
+        font = font12;
+        break;
+      case 18:
+        font = font18;
+        break;
+      case 24:
+        font = font24;
+        break;
+
+      default:
+        font = font9;
+        break;
+    };
+  }
   return font;
 }
 
@@ -136,7 +161,7 @@ void ePaper::renderLabel(const String& data, const String& layout)
 
 			uint16_t y = obj["y"];
 			uint16_t color = helperExtractColor(obj["color"]);
-      const GFXfont* font = helperSizeToFont(obj["size"]);
+      const GFXfont* font = helperSizeToFont(obj["size"], obj["bold"]);
 			String text = helperGetText(dataDoc, obj["text"]);
 
 			printCenteredText(y,font,color,text.c_str());
@@ -156,7 +181,7 @@ void ePaper::renderLabel(const String& data, const String& layout)
 		} else if (type.equals("leftText")) {
 			uint16_t y = obj["y"];
 			uint16_t color = helperExtractColor(obj["color"]);
-      const GFXfont* font = helperSizeToFont(obj["size"]);
+      const GFXfont* font = helperSizeToFont(obj["size"], obj["bold"]);
 			String text = helperGetText(dataDoc, obj["text"]);
 
 			printLeftAlignedText(y,font,color,text.c_str());
@@ -164,7 +189,7 @@ void ePaper::renderLabel(const String& data, const String& layout)
 		} else if (type.equals("rightText")) {
 			uint16_t y = obj["y"];
 			uint16_t color = helperExtractColor(obj["color"]);
-      const GFXfont* font = helperSizeToFont(obj["size"]);
+      const GFXfont* font = helperSizeToFont(obj["size"], obj["bold"]);
 			String text = helperGetText(dataDoc, obj["text"]);
 
 			printRightAlignedText(y,font,color,text.c_str());

@@ -159,11 +159,11 @@ void ePaper::renderLabel(const String& data, const String& layout)
   display.fillScreen(GxEPD_WHITE);
 
 	//String dat = "{\"id\":\"myID\",\"prod\":\"HBP36748\"}";
-  DynamicJsonDocument dataDoc(2048);
+  DynamicJsonDocument dataDoc(4096);
   deserializeJson(dataDoc,data);
 
 
-	DynamicJsonDocument layoutDoc(2048);
+	DynamicJsonDocument layoutDoc(4096);
 	deserializeJson(layoutDoc, layout);
 
 	//deserializeJson(doc, "[{\"type\":\"centeredText\",\"y\":2,\"size\":18,\"color\":\"black\",\"text\":\"test$id$?\"},{\"type\":\"leftText\",\"y\":48,\"size\":9,\"color\":\"black\",\"text\":\"Prod: $prod$\"},{\"type\":\"hline\",\"y\":40,\"w\":4,\"color\":\"black\"}]");
@@ -240,7 +240,7 @@ uint16_t ePaper::printCenteredText(uint16_t y, const GFXfont* f, uint16_t color,
     uint16_t yOffset = y                   // Position from layout
                       + (heightOfOneLine); // origin of text is bottom left, so we add on line height, so a 0,0 will draw at top left corner of display
 
-    if (textHeight - heightOfOneLine > (heightOfOneLine/2)) 
+    if (textHeight > heightOfOneLine) 
     {                     
       yOffset -= (heightOfTwoLines-heightOfOneLine)/2; // for multiple Lines we go up 1/2 the difference, kinda-vertical-center
     }

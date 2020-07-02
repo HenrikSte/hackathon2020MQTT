@@ -80,6 +80,7 @@ class ePaper
     void printHLine(uint16_t y, uint16_t width, uint16_t color);
     uint16_t printCenteredText(uint16_t y, const GFXfont* f, uint16_t color, const char* text);
     uint16_t printLeftAlignedText(uint16_t y, const GFXfont* f, uint16_t color, const char* text);
+    uint16_t printRightAlignedText(uint16_t y, const GFXfont* f, uint16_t color, const char* text);
     void printLabel();
     //void showFontCallback();
     //void drawCornerTest();

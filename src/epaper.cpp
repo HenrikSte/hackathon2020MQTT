@@ -223,9 +223,12 @@ uint16_t ePaper::printCenteredText(uint16_t y, const GFXfont* f, uint16_t color,
     display.setFont(f);
     int16_t x1,y1;
     uint16_t heightOfOneLine;
+    uint16_t heightOfTwoLines;
     
-    display.getTextBounds("W",0,y,&x1,&y1,&textWidth,&heightOfOneLine);
+    display.getTextBounds("W@$_",0,y,&x1,&y1,&textWidth,&heightOfOneLine);
+    display.getTextBounds("W@$_\r\nW@$_",0,y,&x1,&y1,&textWidth,&heightOfTwoLines);
     display.getTextBounds(text,0,y,&x1,&y1,&textWidth,&textHeight);
+    
     /*
     display.fillRect(x1,y1+height,width,height,GxEPD_BLACK);
     color=GxEPD_WHITE;
@@ -237,7 +240,7 @@ uint16_t ePaper::printCenteredText(uint16_t y, const GFXfont* f, uint16_t color,
 
     if (textHeight > heightOfOneLine) 
     {                     
-      yOffset -= (textHeight-heightOfOneLine)/2; // for multiple Lines we go up 1/2 the difference, kinda-vertical-center
+      yOffset -= (heightOfTwoLines-heightOfOneLine)/2; // for multiple Lines we go up 1/2 the difference, kinda-vertical-center
     }
 
     display.setCursor(xOffset,yOffset);

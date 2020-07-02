@@ -102,6 +102,10 @@ String helperGetText(DynamicJsonDocument &dataDoc, const String& rawtext) {
     if (dataDoc.containsKey(key))
     {
       variableValue = (const String&)dataDoc[key];
+      if (variableValue == "null")
+      {
+        variableValue = "";
+      }
     } 
     else
     {

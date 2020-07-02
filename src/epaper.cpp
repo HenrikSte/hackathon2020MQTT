@@ -103,12 +103,11 @@ String helperGetText(DynamicJsonDocument &dataDoc, const String& rawtext) {
     if (result == REGEXP_MATCHED)
     {
       // matching offsets in ms.capture
-      Serial.print ("Capture "); 
-      Serial.print (0, DEC);
-      Serial.print (" = ");
       String key = ms.GetCapture (buf, 0);
       String placeholder = "$" + key + "$";
 
+
+      //TODO how to handle bool and numbers?
       String variableValue = dataDoc[key].as<const char*>();
       if (!variableValue) {
         variableValue = placeholder;
@@ -130,8 +129,6 @@ String helperGetText(DynamicJsonDocument &dataDoc, const String& rawtext) {
       #endif
 
     }  // end of match_callback 
-
-
     else if (result == REGEXP_NOMATCH)
     {
       // no match - no variable to replace
@@ -145,6 +142,41 @@ String helperGetText(DynamicJsonDocument &dataDoc, const String& rawtext) {
   }
 
   return text;
+}
+
+bool helperIsVisible(DynamicJsonDocument &dataDoc, const String& rawVisibleFlag, const String& rawHiddenFlag)
+{
+  bool isVisible = true;
+  #ifdef DEBUG_RENDER
+    Serial.print("rawVisibleFlag:");
+    Serial.println(rawVisibleFlag);
+    Serial.print("rawHiddenFlag:");
+    Serial.println(rawHiddenFlag);
+  #endif
+  if (!rawVisibleFlag.equals("null")) {
+    String isVisibleText = helperGetText(dataDoc, rawVisibleFlag);
+    #ifdef DEBUG_RENDER
+      Serial.print("isVisibleText:");
+      Serial.println(isVisibleText);
+    #endif
+    if (isVisibleText.equals("true")) {
+      isVisible = true;
+    }else{
+      isVisible = false;
+    }
+  }else if (!rawHiddenFlag.equals("null")) {
+    String isHiddenText = helperGetText(dataDoc, rawHiddenFlag);
+    #ifdef DEBUG_RENDER
+      Serial.print("isHiddenText:");
+      Serial.println(isHiddenText);
+    #endif
+    if (isHiddenText.equals("true")) {
+      isVisible = false;
+    }else{
+      isVisible = true;
+    }
+  }
+  return isVisible;
 }
 
 
@@ -169,10 +201,18 @@ void ePaper::renderLabel(const String& data, const String& layout)
 	for(JsonVariant v : array) {
 		JsonObject obj = v.as<JsonObject>();
 		String type = obj["type"];
+    bool isVisible = helperIsVisible(dataDoc,obj["visible"],obj["hidden"]);
+
+    //skip if hidden
+    if (!isVisible) {
+      Serial.println("element "+type+" should be hidden. Skipping");
+      continue;
+    }
+
 		if (type.equals("centeredText")) {
 
 			uint16_t y = obj["y"];
-			uint16_t color = helperExtractColor(obj["color"]);
+  		uint16_t color = helperExtractColor(obj["color"]);
       const GFXfont* font = helperSizeToFont(obj["size"], obj["bold"]);
 			String text = helperGetText(dataDoc, obj["text"]);
 			printCenteredText(y,font,color,text.c_str());

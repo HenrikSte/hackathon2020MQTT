@@ -75,7 +75,7 @@ const GFXfont* helperSizeToFont(uint8_t size, bool bold) {
 
 
 String helperGetText(DynamicJsonDocument &dataDoc, const String& rawtext) {
-  String text;
+  String text = rawtext;
   MatchState ms;
   char buf [100];
   char raw [100];
@@ -91,50 +91,62 @@ String helperGetText(DynamicJsonDocument &dataDoc, const String& rawtext) {
   Serial.println(raw);
 #endif
 
-  char result = ms.Match ("([^$]*)$(%a+)$([^$]*)", 0);
-  if (result == REGEXP_MATCHED)
-  {
-    // matching offsets in ms.capture
-    String prefix = ms.GetCapture (buf, 0);
-    String key = ms.GetCapture (buf, 1);
-    String sufix = ms.GetCapture (buf, 2);
-    String variableValue;
-    if (dataDoc.containsKey(key))
+  String exp = "[^$]*$([^$^%s]+)$[^$]*";
+  // keep matching until we run out of matches
+  for (unsigned int index = 0;
+       char result = ms.Match (exp.c_str(), index) > 0 &&
+       index < ms.src_len;                      // otherwise empty matches loop
+    ){
+    // increment index ready for next time, go forwards at least one byte
+    index = ms.MatchStart + (ms.MatchLength == 0 ? 1 : ms.MatchLength);
+
+    if (result == REGEXP_MATCHED)
     {
-      variableValue = dataDoc[key].as<const char*>();
-    } 
+      // matching offsets in ms.capture
+      Serial.print ("Capture "); 
+      Serial.print (0, DEC);
+      Serial.print (" = ");
+      String key = ms.GetCapture (buf, 0);
+      String placeholder = "$" + key + "$";
+
+      String variableValue = dataDoc[key].as<const char*>();
+      if (!variableValue) {
+        variableValue = placeholder;
+      }
+
+      text.replace(placeholder,variableValue);
+
+      #ifdef DEBUG_RENDER
+        Serial.print("key:");
+        Serial.println(key);
+        Serial.print("placeholder:");
+        Serial.println(placeholder);
+        Serial.print("variableValue:");
+        Serial.println(variableValue);
+        Serial.print("variableValue.isEmpty:");
+        Serial.println(variableValue.isEmpty());
+        Serial.print("text:");
+        Serial.println(text);
+      #endif
+
+    }  // end of match_callback 
+
+
+    else if (result == REGEXP_NOMATCH)
+    {
+      // no match - no variable to replace
+      text = rawtext;
+    }
     else
     {
-      variableValue = "$" + key + "$";
+      // some sort of error
+      text = "error";
     }
-    text = prefix + variableValue + sufix;
-#ifdef DEBUG_RENDER
-    Serial.print("prefix:");
-    Serial.println(prefix);
-    Serial.print("key:");
-    Serial.println(key);
-    Serial.print("sufix:");
-    Serial.println(sufix);
-    Serial.print("variableValue:");
-    Serial.println(variableValue);
-    Serial.print("variableValue.isEmpty:");
-    Serial.println(variableValue.isEmpty());
-    Serial.print("text:");
-    Serial.println(text);
-#endif
   }
-  else if (result == REGEXP_NOMATCH)
-  {
-    // no match - no variable to replace
-    text = rawtext;
-  }
-  else
-  {
-    // some sort of error
-    text = "error";
-  }
+
   return text;
  }
+
 
 void ePaper::renderLabel(const String& data, const String& layout) 
 {

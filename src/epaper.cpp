@@ -110,7 +110,10 @@ String helperGetText(DynamicJsonDocument &dataDoc, const String& rawtext) {
       String placeholder = "$" + key + "$";
 
       String variableValue = (const String&)dataDoc[key];
-      if (!variableValue) {
+      if (variableValue == "null") {
+        variableValue = "";
+      }
+      else if (!variableValue) {
         variableValue = placeholder;
       }
 

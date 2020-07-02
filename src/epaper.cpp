@@ -199,7 +199,7 @@ void ePaper::renderLabel(const String& data, const String& layout)
 	DynamicJsonDocument layoutDoc(4096);
 	deserializeJson(layoutDoc, layout);
 
-	//deserializeJson(doc, "[{\"type\":\"centeredText\",\"y\":2,\"size\":18,\"color\":\"black\",\"text\":\"test$id$?\"},{\"type\":\"leftText\",\"y\":48,\"size\":9,\"color\":\"black\",\"text\":\"Prod: $prod$\"},{\"type\":\"hline\",\"y\":40,\"w\":4,\"color\":\"black\"}]");
+	//deserializeJson(layoutDoc, "[{\"type\":\"rightText\",\"y\":2,\"size\":18,\"color\":\"black\",\"text\":\"test$id$?\"},{\"type\":\"leftText\",\"y\":48,\"size\":9,\"color\":\"black\",\"text\":\"Prod: $prod$\"},{\"type\":\"hline\",\"y\":40,\"w\":4,\"color\":\"black\"}]");
 	// extract the values
 	JsonArray array = layoutDoc.as<JsonArray>();
 	for(JsonVariant v : array) {
@@ -240,7 +240,14 @@ void ePaper::renderLabel(const String& data, const String& layout)
 			String text = helperGetText(dataDoc, obj["text"]);
 
 			printLeftAlignedText(y,font,color,text.c_str());
-		
+
+		} else if (type.equals("rightText")) {
+			uint16_t y = obj["y"];
+			uint16_t color = helperExtractColor(obj["color"]);
+      const GFXfont* font = helperSizeToFont(obj["size"], obj["bold"]);
+			String text = helperGetText(dataDoc, obj["text"]);
+
+			printRightAlignedText(y,font,color,text.c_str());
 		}
 
 	}
@@ -298,12 +305,12 @@ uint16_t ePaper::printCenteredText(uint16_t y, const GFXfont* f, uint16_t color,
 uint16_t ePaper::printLeftAlignedText(uint16_t y, const GFXfont* f, uint16_t color, const char* text) {
 
   int16_t x1,y1;
-  uint16_t textWidth,textHeight;
+  uint16_t textHeight;
+
   if (text && strlen(text))
   {
     display.setFont(f);
-    uint16_t heightOfOneLine;
-    uint16_t heightOfTwoLines;
+    uint16_t heightOfOneLine,heightOfTwoLines,textWidth;
     
     display.getTextBounds("QW@$_",0,y,&x1,&y1,&textWidth,&heightOfOneLine);
     display.getTextBounds("QW@$_\r\nQW@$_",0,y,&x1,&y1,&textWidth,&heightOfTwoLines);
@@ -325,6 +332,35 @@ uint16_t ePaper::printLeftAlignedText(uint16_t y, const GFXfont* f, uint16_t col
   return textHeight;
 }
 
+uint16_t ePaper::printRightAlignedText(uint16_t y, const GFXfont* f, uint16_t color, const char* text) {
+
+  int16_t x1,y1;
+  uint16_t textHeight;
+
+  if (text && strlen(text))
+  {
+    display.setFont(f);
+    uint16_t heightOfOneLine,heightOfTwoLines,textWidth;
+    
+    display.getTextBounds("QW@$_",0,y,&x1,&y1,&textWidth,&heightOfOneLine);
+    display.getTextBounds("QW@$_\r\nQW@$_",0,y,&x1,&y1,&textWidth,&heightOfTwoLines);
+    display.getTextBounds(text,0,y,&x1,&y1,&textWidth,&textHeight);
+    
+    uint16_t yOffset = y                   // Position from layout
+                      + (heightOfOneLine); // origin of text is bottom left, so we add on line height, so a 0,0 will draw at top left corner of display
+
+    if (textHeight - heightOfOneLine > (heightOfOneLine/2)) 
+    {                     
+      yOffset -= (heightOfTwoLines-heightOfOneLine)/2; // for multiple Lines we go up 1/2 the difference, kinda-vertical-center
+    }
+
+    display.setCursor(GxEPD_WIDTH-textWidth,y+heightOfOneLine);
+    display.setTextColor(color);
+    display.println(text);
+  }
+  //return hight of line
+  return textHeight;
+}
 
 void ePaper::printLabel()
 {

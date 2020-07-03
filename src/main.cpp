@@ -517,7 +517,7 @@ void setup()
   //SPI.begin(PIN_CLK,PIN_MISO,PIN_MOSI, PIN_SS);
 #endif
 
-  Serial.println("Render Label...");
+  Serial.println("SplashScreen");
   //e.renderLabel("","");
   e.splashScreen();
 

@@ -407,6 +407,9 @@ void ePaper::renderLabelTest( const String & data,  const String & layout)
 
 void ePaper::splashScreen()
 {
+  Serial.println("***** test Rendering *****");
+  unsigned long startTime = millis();
+
   display.fillScreen(GxEPD_WHITE);
 
   if (GxEPD_WIDTH == 800)
@@ -418,7 +421,13 @@ void ePaper::splashScreen()
     display.drawBitmap(0,0,msiHackathon400x300,400,300, GxEPD_BLACK);
   }
 
-  display.update(); 
+  Serial.print("***** rendering took ");
+  Serial.print(millis() - startTime);
+  Serial.println("ms *****");
+  display.update();
+  Serial.print("***** all together took ");
+  Serial.print(millis() - startTime);
+  Serial.println("ms *****");
 }
 
 
